@@ -4,7 +4,7 @@ export async function GET(request: NextRequest) {
     const apiUrl = process.env.API_URL;
 
     try {
-        const response = await fetch(`${apiUrl}`, {
+      const response = await fetch(`${apiUrl}/hello-binh`, {
           headers: {
             'Content-Type': 'application/json',
             'Cache-Control': 'no-cache',
