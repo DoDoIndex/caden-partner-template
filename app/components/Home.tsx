@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Navbar from "./navbar";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarHeader, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import CardProduct from "./card-product";
-import FilterProduct from "./filter-product";
+// import FilterProduct from "./filter-product";
 
 export default function Home() {
   const [sampleData, setSampleData] = useState('');
