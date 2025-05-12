@@ -1,17 +1,19 @@
 import Baner from "@/components/Homepage/baner";
-import CardProduct from "@/components/Homepage/card-product";
-import Navbar from "@/components/Homepage/navbar";
 import Sidebar from "@/components/Homepage/sidebar";
-import { Ban } from "lucide-react";
-
+import CardProduct from "@/components/Homepage/card-product";
 export default function HomePage() {
   return (
     <main>
-      <Navbar />
       <Baner />
       <div className="flex gap-4">
         <Sidebar />
-        <div>
+        <div className="grid grid-cols-4 gap-5">
+          <CardProduct />
+          <CardProduct />
+          <CardProduct />
+          <CardProduct />
+          <CardProduct />
+          <CardProduct />
           <CardProduct />
         </div>
       </div>
