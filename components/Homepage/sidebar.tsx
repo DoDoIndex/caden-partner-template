@@ -58,22 +58,6 @@ export default function Sidebar() {
                 </div>
             </div>
 
-            {/* <div>
-                <h4 className="font-semibold text-lg">Application</h4>
-                <ul>
-                    <li>Outdoor Wall</li>
-                    <li>Outdoor Floor</li>
-                    <li>Indoor Wall</li>
-                    <li>Indoor Floor</li>
-                    <li>Shower Wall</li>
-                    <li>Shower Floor</li>
-                    <li>Heated Floor</li>
-                    <li>Commercial Floor</li>
-                    <li>Steam Room</li>
-                    <li>Swimming Pool</li>
-                </ul>
-            </div> */}
-
             <div className="flex flex-col gap-2 border-b-2 pb-4">
                 <h4 className="font-semibold text-md bg-stone-200 rounded-2xl pl-2 p-1">Color</h4>
                 <div className="grid grid-cols-3 gap-4">
@@ -86,7 +70,6 @@ export default function Sidebar() {
                 </div>
 
             </div>
-
         </section>
     )
 }
