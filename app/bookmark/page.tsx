@@ -1,4 +1,10 @@
+"use client";
+import React, { useState } from "react";
+import Tabs from "@/components/Tabs";
+
 export default function BookmarkPage() {
+    const [activeTab, setActiveTab] = useState("Đã lưu");
+
     const bookmarks = [
         {
             title: "OpenAI",
@@ -16,41 +22,75 @@ export default function BookmarkPage() {
         },
     ];
 
-    return (
-        <main className="min-h-screen bg-gray-100 p-6">
-            <h1 className="text-3xl font-bold mb-6">📚 My Bookmarks</h1>
+    const savedBookmarks = [
+        {
+            image: "https://cadentile.com/wp-content/uploads/2025/02/Broadway-White-ICE-MG-3x12-02-768x768.webp", // Replace with your real image URLs
+            alt: "Notebook",
+        },
+        {
+            image: "https://cadentile.com/wp-content/uploads/2025/02/Capella-Stone-Gray-12x24-02-768x768.webp",
+            alt: "Book",
+        },
+        {
+            image: "https://cadentile.com/wp-content/uploads/2025/02/Capella-Stone-Gray-24x48-02-768x768.webp",
+            alt: "Dragon Art",
+        },
+        {
+            image: "https://cadentile.com/wp-content/uploads/2025/02/Capella-Stone-Silver-12x24-02-768x768.webp",
+            alt: "Food",
+        },
+        {
+            image: "https://i.imgur.com/5.png",
+            alt: "App UI",
+        },
+        {
+            image: "https://i.imgur.com/6.png",
+            alt: "Books",
+        },
+        {
+            image: "https://i.imgur.com/7.png",
+            alt: "Flower",
+        },
+    ];
 
-            <div className="mb-4">
-                <input
-                    type="text"
-                    placeholder="Search bookmarks..."
-                    className="w-full p-2 rounded border border-gray-300"
-                />
-            </div>
-
-            <div className="grid gap-4">
-                {bookmarks.map((bookmark, index) => (
-                    <a
-                        key={index}
-                        href={bookmark.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center bg-white rounded-xl shadow hover:shadow-md p-4 transition"
+    const savedContent = (
+        <div className="w-full py-6 px-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-10">
+                {savedBookmarks.map((item, idx) => (
+                    <div
+                        key={idx}
+                        className="bg-white rounded-xl shadow p-4 flex items-center justify-center aspect-[3/4]"
                     >
                         <img
-                            src={bookmark.favicon}
-                            alt="favicon"
-                            className="w-6 h-6 mr-4"
+                            src={item.image}
+                            alt={item.alt}
+                            className="object-contain w-full h-full rounded-lg"
                         />
-                        <div>
-                            <h2 className="text-lg font-semibold">{bookmark.title}</h2>
-                            <p className="text-sm text-gray-500">{bookmark.description}</p>
-                            <p className="text-xs text-gray-400 mt-1">📂 {bookmark.folder}</p>
-                        </div>
-                    </a>
+                    </div>
                 ))}
+            </div>
+        </div>
+    );
+    const createdContent = (
+        <div className="flex flex-wrap gap-4 justify-center mt-6">
+            {/* Replace with your real data */}
+            <div className="w-40 h-56 bg-white rounded-xl shadow flex items-center justify-center">Created 1</div>
+            <div className="w-40 h-56 bg-white rounded-xl shadow flex items-center justify-center">Created 2</div>
+        </div>
+    );
+
+    return (
+        <main className="min-h-screen bg-gray-100 p-4 flex flex-col items-center">
+            <div className="w-full max-w-6xl">
+                <Tabs
+                    tabs={["Đã lưu", "Đã tạo"]}
+                    activeTab={activeTab}
+                    onTabClick={setActiveTab}
+                />
+                <div>
+                    {activeTab === "Đã lưu" ? savedContent : createdContent}
+                </div>
             </div>
         </main>
     );
 }
-  
