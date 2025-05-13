@@ -1,0 +1,109 @@
+'use client';
+
+import { Product } from "@/app/types/product";
+import { useState, useEffect } from "react";
+
+interface ListProductProps {
+    product: Product;
+}
+
+export default function ListProduct({ product }: ListProductProps) {
+    const [isHovered, setIsHovered] = useState(false);
+    const [isBookmarked, setIsBookmarked] = useState(false);
+
+    useEffect(() => {
+        // Kiểm tra trạng thái bookmark từ localStorage khi component mount
+        const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+        setIsBookmarked(bookmarks.some((bookmark: Product) => bookmark.productId === product.productId));
+    }, [product.productId]);
+
+    const handleBookmark = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Lấy danh sách bookmark hiện tại từ localStorage
+        const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+
+        if (isBookmarked) {
+            // Xóa bookmark
+            const newBookmarks = bookmarks.filter((bookmark: Product) => bookmark.productId !== product.productId);
+            localStorage.setItem('bookmarks', JSON.stringify(newBookmarks));
+        } else {
+            // Thêm bookmark mới
+            bookmarks.push(product);
+            localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+        }
+
+        setIsBookmarked(!isBookmarked);
+    };
+
+    const handleShare = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (navigator.share) {
+            navigator.share({
+                title: product.name,
+                text: `${product.material} - ${product.texture}`,
+                url: window.location.href,
+            });
+        }
+    };
+
+    return (
+        <div
+            className="group flex items-center gap-4 bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            <div className="w-24 h-24 flex-shrink-0 relative overflow-hidden rounded-lg">
+                <img
+                    src={product.images}
+                    alt={product.name}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                />
+                {/* Quick Actions */}
+                <div className={`absolute top-2 right-2 flex flex-col gap-2 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+                    <button
+                        onClick={handleBookmark}
+                        className="p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"
+                        title={isBookmarked ? "Remove from bookmarks" : "Add to bookmarks"}
+                    >
+                        <svg className={`w-5 h-5 ${isBookmarked ? 'text-amber-500 fill-current' : 'text-gray-600'}`} viewBox="0 0 24 24">
+                            <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" />
+                        </svg>
+                    </button>
+                    <button
+                        onClick={handleShare}
+                        className="p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"
+                        title="Share product"
+                    >
+                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div className="flex-grow">
+                <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-primary transition-colors">
+                    {product.name}
+                </h3>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <span className="px-2 py-1 bg-gray-100 rounded-full">{product.collection}</span>
+                    <span>•</span>
+                    <span className="px-2 py-1 bg-gray-100 rounded-full">{product.size}</span>
+                    <span>•</span>
+                    <span className="px-2 py-1 bg-gray-100 rounded-full">{product.material}</span>
+                </div>
+                <p className="mt-2 text-sm text-gray-500">{product.texture}</p>
+            </div>
+            <div className="text-right">
+                <div className="text-lg font-semibold text-primary">${product.myUnitPrice}</div>
+                <div className="text-sm text-gray-500">/ {product.unitOfMeasurement}</div>
+                <div className="mt-2 text-sm text-gray-600">
+                    <div>Box: {product.quantityPerBox} pcs</div>
+                    <div>Coverage: {product.coverage} {product.unitOfMeasurement}</div>
+                </div>
+            </div>
+        </div>
+    );
+} 
