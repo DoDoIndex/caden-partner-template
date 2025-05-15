@@ -2,6 +2,7 @@
 
 import { Product } from "@/app/types/product";
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 export interface CardProductProps {
     product: Product;
@@ -23,20 +24,19 @@ export default function CardProduct({ product }: CardProductProps) {
         e.preventDefault();
         e.stopPropagation();
 
-        // Lấy danh sách bookmark hiện tại từ localStorage
         const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
 
         if (isBookmarked) {
-            // Xóa bookmark
             const newBookmarks = bookmarks.filter((bookmark: Product) => bookmark.productId !== product.productId);
             localStorage.setItem('bookmarks', JSON.stringify(newBookmarks));
+            setIsBookmarked(false);
+            toast.success('Deleted from bookmark');
         } else {
-            // Thêm bookmark mới
             bookmarks.push(product);
             localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+            setIsBookmarked(true);
+            toast.success('Successfully added to bookmark');
         }
-
-        setIsBookmarked(!isBookmarked);
     };
 
     const handleShare = (e: React.MouseEvent) => {
@@ -72,7 +72,7 @@ export default function CardProduct({ product }: CardProductProps) {
                         className="p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"
                         title={isBookmarked ? "Remove from bookmarks" : "Add to bookmarks"}
                     >
-                        <svg className={`w-5 h-5 ${isBookmarked ? 'text-amber-500 fill-current' : 'text-gray-600'}`} viewBox="0 0 24 24">
+                        <svg className={`w-5 h-5 ${isBookmarked ? 'text-sky-500 fill-current' : 'text-gray-600'}`} viewBox="0 0 24 24">
                             <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" />
                         </svg>
                     </button>
