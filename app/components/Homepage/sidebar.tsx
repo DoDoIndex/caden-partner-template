@@ -134,7 +134,7 @@ export default function Sidebar() {
             <section className={`
                 fixed lg:static inset-y-0 left-0 z-40
                 w-[85vw] sm:w-[320px] lg:w-auto
-                bg-white lg:bg-transparent
+                bg-white lg:bg-transparent border-1 rounded-lg
                 transform transition-transform duration-300 ease-in-out
                 ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
                 flex flex-col
