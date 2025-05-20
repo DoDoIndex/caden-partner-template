@@ -75,7 +75,7 @@ export default function AboutPage() {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-24 px-6 bg-gradient-to-b from-gray-50 to-white">
+      <section className="py-24 px-6 bg-blue-50">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-semibold mb-8 text-gray-900">Who It's For</h2>
           <p className="text-xl text-gray-600 mb-16 max-w-3xl mx-auto">
@@ -127,7 +127,7 @@ export default function AboutPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-gray-900 to-gray-800 text-white py-32 px-6">
+      <section className="relative overflow-hidden bg-gradient-to-r from-gray-800 to-gray-700 text-white py-32 px-6">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
         <div className="max-w-4xl mx-auto text-center relative">
           <h2 className="text-4xl md:text-5xl font-semibold mb-8">Join the Network</h2>
@@ -136,7 +136,7 @@ export default function AboutPage() {
           </p>
           <div className="flex flex-wrap justify-center gap-6">
             <a
-              href="/contact"
+              href="/partner"
               className="inline-flex items-center px-8 py-4 rounded-full font-medium bg-white text-gray-900 hover:bg-gray-100 hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
             >
               Become a Partner

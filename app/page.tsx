@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Baner from "@/components/Homepage/baner";
-import Sidebar from "@/components/Homepage/sidebar";
+import Sidebar from "@/app/components/Homepage/sidebar";
 import CardProduct from "@/app/components/Homepage/card-product";
 import ListProduct from "@/app/components/Homepage/list-product";
 import { Product } from "@/app/types/product";
@@ -12,6 +12,8 @@ export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 40;
   const [filters, setFilters] = useState({
     category: '',
     minPrice: '',
@@ -19,6 +21,23 @@ export default function HomePage() {
     inStock: '',
     search: ''
   });
+
+  // Tính toán phân trang
+  const totalPages = Math.ceil(products.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentProducts = products.slice(startIndex, endIndex);
+
+  // Hàm xử lý chuyển trang
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Reset về trang 1 khi thay đổi filter
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
 
   useEffect(() => {
     fetchProducts();
@@ -91,7 +110,9 @@ export default function HomePage() {
                   <option value="price_asc">Price: Low to High</option>
                   <option value="price_desc">Price: High to Low</option>
                 </select>
-                <span className="text-sm text-gray-600">{products.length} products</span>
+                <span className="text-sm text-gray-600">
+                  Showing {startIndex + 1}-{Math.min(endIndex, products.length)} of {products.length} products
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -135,7 +156,7 @@ export default function HomePage() {
                 ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
                 : "space-y-4"
               }>
-                {products.map((product, index) => (
+                {currentProducts.map((product, index) => (
                   <div key={`${viewMode}-${product.productId || index}`}>
                     {viewMode === 'grid' ? (
                       <CardProduct product={product} />
@@ -155,25 +176,51 @@ export default function HomePage() {
             )}
 
             {/* Pagination */}
-            <div className="mt-6 sm:mt-8 flex justify-center">
-              <nav className="flex flex-wrap items-center justify-center gap-2">
-                <button className="rounded-lg border border-gray-200 bg-white px-3 sm:px-4 py-2 text-sm hover:bg-gray-50">
-                  Previous
-                </button>
-                <button className="rounded-lg bg-primary px-3 sm:px-4 py-2 text-sm text-white hover:bg-primary/90">
-                  1
-                </button>
-                <button className="rounded-lg border border-gray-200 bg-white px-3 sm:px-4 py-2 text-sm hover:bg-gray-50">
-                  2
-                </button>
-                <button className="rounded-lg border border-gray-200 bg-white px-3 sm:px-4 py-2 text-sm hover:bg-gray-50">
-                  3
-                </button>
-                <button className="rounded-lg border border-gray-200 bg-white px-3 sm:px-4 py-2 text-sm hover:bg-gray-50">
-                  Next
-                </button>
-              </nav>
-            </div>
+            {!loading && !error && totalPages > 1 && (
+              <div className="mt-6 sm:mt-8">
+                <div className="flex flex-col items-center justify-center gap-4">
+                  <div className="text-sm text-gray-600">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <nav className="flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className={`rounded-lg border border-gray-200 px-3 sm:px-4 py-2 text-sm transition-colors ${currentPage === 1
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                        }`}
+                    >
+                      Previous
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => handlePageChange(page)}
+                        className={`rounded-lg px-3 sm:px-4 py-2 text-sm transition-colors ${currentPage === page
+                          ? 'bg-primary text-white hover:bg-primary/90'
+                          : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                          }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className={`rounded-lg border border-gray-200 px-3 sm:px-4 py-2 text-sm transition-colors ${currentPage === totalPages
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                        }`}
+                    >
+                      Next
+                    </button>
+                  </nav>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>

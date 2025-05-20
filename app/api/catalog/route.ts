@@ -95,7 +95,7 @@ export async function PUT(request: Request) {
         }
 
         const body = await request.json();
-        const url = `${API_URL}/api/catalog/${id}`;
+        const url = `${API_URL}/api/catalog/product/details/${id}`;
 
         console.log('PUT Request URL:', url);
         console.log('PUT Request Body:', body);

@@ -18,7 +18,7 @@ export default function Baner() {
                 </p>
                 <Button
                     variant="outline"
-                    className="text-black border-2 hover:bg-amber-500 hover:text-white"
+                    className="text-black border-2 hover:bg-sky-500 hover:text-white"
                     onClick={() => window.open('https://www.instagram.com/cadentile/', '_blank')}>
                     See our Instagram <ArrowUpRight className="ml-2 w-4 h-4" />
                 </Button>
