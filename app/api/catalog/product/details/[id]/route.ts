@@ -11,7 +11,7 @@ export async function GET(
             throw new Error('API_URL is not defined');
         }
 
-        const url = `${apiUrl}/catalog/product/details/${resolvedParams.id}`;
+        const url = `${apiUrl}/api/catalog/product/details?productId=${resolvedParams.id}`;
         console.log('GET Request URL:', url);
 
         const response = await fetch(url, {
