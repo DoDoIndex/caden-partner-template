@@ -3,12 +3,14 @@
 import { Product } from "@/app/types/product";
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 export interface CardProductProps {
     product: Product;
 }
 
 export default function CardProduct({ product }: CardProductProps) {
+    const router = useRouter();
     const [isHovered, setIsHovered] = useState(false);
     const [isBookmarked, setIsBookmarked] = useState(false);
     const [showJson, setShowJson] = useState(false);
@@ -51,6 +53,10 @@ export default function CardProduct({ product }: CardProductProps) {
         }
     };
 
+    const handleProductClick = () => {
+        router.push(`/product/${product.productId}`);
+    };
+
     return (
         <div
             className="group relative bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
@@ -58,7 +64,7 @@ export default function CardProduct({ product }: CardProductProps) {
             onMouseLeave={() => setIsHovered(false)}
         >
             {/* Image Container */}
-            <div className="relative aspect-square overflow-hidden">
+            <div className="relative aspect-square overflow-hidden cursor-pointer" onClick={handleProductClick}>
                 <img
                     src={product.images}
                     alt={product.name}
@@ -100,7 +106,7 @@ export default function CardProduct({ product }: CardProductProps) {
                 </div>
                 <h3
                     className="font-semibold text-gray-900 mb-1 line-clamp-1 cursor-pointer hover:text-primary"
-                    onClick={() => setShowJson(!showJson)}
+                    onClick={handleProductClick}
                 >
                     {product.name}
                 </h3>
