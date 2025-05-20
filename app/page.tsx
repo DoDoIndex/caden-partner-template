@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Baner from "@/components/Homepage/baner";
-import Sidebar from "@/app/components/Homepage/sidebar";
+import SidebarWrapper from "@/app/components/Homepage/sidebar-wrapper";
 import CardProduct from "@/app/components/Homepage/card-product";
 import ListProduct from "@/app/components/Homepage/list-product";
 import { Product } from "@/app/types/product";
@@ -93,7 +93,7 @@ export default function HomePage() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar */}
           <div className="w-full lg:w-1/4">
-            <Sidebar />
+            <SidebarWrapper />
           </div>
 
           {/* Main Content */}
