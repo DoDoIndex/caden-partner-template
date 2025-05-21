@@ -125,7 +125,7 @@ export default function Sidebar() {
             {/* Mobile Toggle Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`lg:hidden fixed bottom-6 left-6 z-50 bg-sky-600 text-white p-4 rounded-full shadow-lg hover:bg-sky-700 transition-colors ${isOpen ? 'hidden' : 'block'}`}
+                className={`lg:hidden fixed bottom-6 left-6 z-50 bg-stone-500 text-white p-4 rounded-full shadow-lg hover:bg-stone-600 transition-colors ${isOpen ? 'hidden' : 'block'}`}
             >
                 {isOpen ? <X size={24} /> : <ListFilter size={24} />}
             </button>
@@ -149,7 +149,7 @@ export default function Sidebar() {
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={clearFilters}
-                                className="text-sm text-black hover:text-sky-500 transition-colors"
+                                className="text-sm text-gray-500 hover:text-black transition-colors"
                             >
                                 Clear All
                             </button>

@@ -39,6 +39,10 @@ export default function CardProduct({ product }: CardProductProps) {
             setIsBookmarked(true);
             toast.success('Successfully added to bookmark');
         }
+        // Thông báo cho các tab/component khác cập nhật lại bookmarks
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('bookmarks-updated'));
+        }
     };
 
     const handleShare = (e: React.MouseEvent) => {
@@ -46,8 +50,8 @@ export default function CardProduct({ product }: CardProductProps) {
         e.stopPropagation();
         if (navigator.share) {
             navigator.share({
-                title: product.name,
-                text: `${product.material} - ${product.texture}`,
+                title: product.productDetails.Name,
+                text: `${product.productDetails.Material} - ${product.productDetails.Trim}`,
                 url: window.location.href,
             });
         }
@@ -59,17 +63,19 @@ export default function CardProduct({ product }: CardProductProps) {
 
     return (
         <div
-            className="group relative bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+            className="group relative bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col h-full"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
             {/* Image Container */}
             <div className="relative aspect-square overflow-hidden cursor-pointer" onClick={handleProductClick}>
-                <img
-                    src={product.images}
-                    alt={product.name}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
+                {product.productDetails.Images && (
+                    <img
+                        src={Array.isArray(product.productDetails.Images) ? product.productDetails.Images[0] : product.productDetails.Images}
+                        alt={product.productDetails.Name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                )}
 
                 {/* Quick Actions */}
                 <div className={`absolute top-4 right-4 flex flex-col gap-2 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
@@ -78,7 +84,7 @@ export default function CardProduct({ product }: CardProductProps) {
                         className="p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"
                         title={isBookmarked ? "Remove from bookmarks" : "Add to bookmarks"}
                     >
-                        <svg className={`w-5 h-5 ${isBookmarked ? 'text-sky-500 fill-current' : 'text-gray-600'}`} viewBox="0 0 24 24">
+                        <svg className={`w-5 h-5 ${isBookmarked ? 'text-amber-300 fill-current' : 'text-gray-600'}`} viewBox="0 0 24 24">
                             <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" />
                         </svg>
                     </button>
@@ -95,39 +101,43 @@ export default function CardProduct({ product }: CardProductProps) {
             </div>
 
             {/* Product Info */}
-            <div className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
-                        {product.collection}
-                    </span>
-                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
-                        {product.size}
-                    </span>
+            <div className="flex flex-col justify-between flex-1 p-4">
+                <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
+                            {product.productDetails.Collection}
+                        </span>
+                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
+                            {product.productDetails.Size}
+                        </span>
+                    </div>
+                    <h3
+                        className="font-semibold text-gray-900 mb-1 line-clamp-1 cursor-pointer hover:text-primary"
+                        onClick={handleProductClick}
+                    >
+                        {product.productDetails.Name}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-2">{product.productDetails.Material} - {product.productDetails.Trim}</p>
                 </div>
-                <h3
-                    className="font-semibold text-gray-900 mb-1 line-clamp-1 cursor-pointer hover:text-primary"
-                    onClick={handleProductClick}
-                >
-                    {product.name}
-                </h3>
-                <p className="text-sm text-gray-600 mb-2">{product.material} - {product.texture}</p>
-                <div className="flex items-center justify-between">
-                    <div>
-                        <span className="text-lg font-semibold text-primary">${product.myUnitPrice}</span>
-                        <span className="text-sm text-gray-500 ml-2">/ {product.unitOfMeasurement}</span>
+                <div>
+                    <div className="flex flex-col items-start justify-between">
+                        <div>
+                            <span className="text-lg font-semibold text-primary">${product.partnerPrice}</span>
+                            <span className="text-sm text-gray-500 ml-2">/ {product.productDetails.UOM}</span>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                            <span className="block">Box: {product.productDetails["Qty per Box"]} pcs</span>
+                            <span className="block">Coverage: {product.productDetails["Coverage (sqft)"]} {product.productDetails.UOM}</span>
+                        </div>
                     </div>
-                    <div className="text-sm text-gray-600">
-                        <span className="block">Box: {product.quantityPerBox} pcs</span>
-                        <span className="block">Coverage: {product.coverage} {product.unitOfMeasurement}</span>
-                    </div>
+                    {showJson && (
+                        <div className="mt-2 p-2 bg-gray-50 rounded-lg">
+                            <pre className="text-xs text-gray-600 overflow-auto">
+                                {productJson}
+                            </pre>
+                        </div>
+                    )}
                 </div>
-                {showJson && (
-                    <div className="mt-2 p-2 bg-gray-50 rounded-lg">
-                        <pre className="text-xs text-gray-600 overflow-auto">
-                            {productJson}
-                        </pre>
-                    </div>
-                )}
             </div>
         </div>
     );

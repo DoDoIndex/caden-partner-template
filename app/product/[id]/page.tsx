@@ -6,6 +6,13 @@ import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Share2, Bookmark } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import {
+    Carousel,
+    CarouselContent,
+    CarouselItem,
+    CarouselNext,
+    CarouselPrevious,
+} from "@/components/ui/carousel";
 
 export default function ProductDetail({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
@@ -15,6 +22,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
     const [selectedImage, setSelectedImage] = useState<string>('');
     const [quantity, setQuantity] = useState(1);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -22,18 +30,20 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                 setLoading(true);
                 const response = await fetch(`/api/catalog/product/details/${resolvedParams.id}`);
                 if (!response.ok) {
-                    throw new Error('Failed to fetch product details');
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
                 setProduct(data);
-                setSelectedImage(data.images);
+                if (data?.productDetails?.Images && data.productDetails.Images.length > 0) {
+                    setSelectedImage(data.productDetails.Images[0]);
+                }
 
                 // Kiểm tra trạng thái bookmark
                 const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
                 setIsBookmarked(bookmarks.some((b: Product) => b.productId === data.productId));
             } catch (error) {
                 console.error('Error fetching product:', error);
-                toast.error('Cannot load product details');
+                setError(error instanceof Error ? error.message : 'Failed to fetch product');
             } finally {
                 setLoading(false);
             }
@@ -63,8 +73,8 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
     const handleShare = () => {
         if (navigator.share && product) {
             navigator.share({
-                title: product.name,
-                text: `${product.material} - ${product.texture}`,
+                title: product.productDetails.Name,
+                text: `${product.productDetails.Material} - ${product.productDetails.Trim}`,
                 url: window.location.href,
             });
         }
@@ -115,114 +125,156 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
 
             {/* Main Content */}
             <div className="container mx-auto px-4 py-8">
-                <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
-                        {/* Image Section */}
+                {loading ? (
+                    <div className="flex justify-center items-center min-h-[400px]">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                    </div>
+                ) : error ? (
+                    <div className="text-center text-red-500 py-8">
+                        <p>Error: {error}</p>
+                    </div>
+                ) : product ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Phần hình ảnh */}
                         <div className="space-y-4">
-                            <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-100">
-                                <Image
-                                    src={selectedImage}
-                                    alt={product.name}
-                                    width={800}
-                                    height={800}
-                                    className="object-contain w-full h-full"
-                                    priority
-                                    unoptimized
-                                />
+                                    <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100">
+                                        {selectedImage && (
+                                            <Image
+                                                src={selectedImage}
+                                                alt={product.productDetails?.Name || 'Product image'}
+                                                fill
+                                                className="object-cover"
+                                                sizes="(max-width: 768px) 100vw, 50vw"
+                                                priority
+                                            />
+                                        )}
                             </div>
-                            <div className="grid grid-cols-4 gap-4">
-                                <button
-                                    onClick={() => setSelectedImage(product.images)}
-                                    className={`aspect-square rounded-lg overflow-hidden border-2 ${selectedImage === product.images ? 'border-primary' : 'border-transparent'
-                                        }`}
-                                >
-                                    <Image
-                                        src={product.images}
-                                        alt={product.name}
-                                        width={200}
-                                        height={200}
-                                        className="object-contain w-full h-full"
-                                        unoptimized
-                                    />
-                                </button>
-                            </div>
+                                    {product.productDetails?.Images && (Array.isArray(product.productDetails.Images) ? product.productDetails.Images.length > 1 : false) && (
+                                        <Carousel className="w-full">
+                                            <CarouselContent>
+                                                {(Array.isArray(product.productDetails.Images) ? product.productDetails.Images : [product.productDetails.Images]).map((image: string, index: number) => (
+                                                    <CarouselItem key={index} className="basis-1/4">
+                                                        <button
+                                                            onClick={() => setSelectedImage(image)}
+                                                            className={`relative aspect-square overflow-hidden rounded-lg w-full h-full ${selectedImage === image ? 'ring-2 ring-primary' : ''}`}
+                                                        >
+                                                            <Image
+                                                                src={image}
+                                                                alt={`${product.productDetails?.Name || 'Product'} - Image ${index + 1}`}
+                                                                fill
+                                                                className="object-cover"
+                                                                sizes="(max-width: 768px) 25vw, 12.5vw"
+                                                            />
+                                                        </button>
+                                                    </CarouselItem>
+                                                ))}
+                                            </CarouselContent>
+                                            <CarouselPrevious className="left-0" />
+                                            <CarouselNext className="right-0" />
+                                        </Carousel>
+                                    )}
                         </div>
 
-                        {/* Product Info */}
-                        <div className="space-y-6">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <span className="px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full">
-                                        {product.collection}
-                                    </span>
-                                    <span className="px-3 py-1 bg-gray-100 text-gray-600 text-sm font-medium rounded-full">
-                                        {product.size}
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={handleBookmark}
-                                        className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                                        title={isBookmarked ? "Remove from bookmarks" : "Add to bookmarks"}
-                                    >
-                                        <Bookmark
-                                            size={24}
-                                            className={isBookmarked ? 'text-primary fill-current' : 'text-gray-600'}
-                                        />
-                                    </button>
-                                    <button
-                                        onClick={handleShare}
-                                        className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                                        title="Share product"
-                                    >
-                                        <Share2 size={24} className="text-gray-600" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-
-                            <div className="space-y-6">
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-3xl font-bold text-primary">${product.myUnitPrice}</span>
-                                    <span className="text-gray-500">/ {product.unitOfMeasurement}</span>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-6 py-6 border-t border-b">
-                                    <div>
-                                        <p className="text-sm text-gray-500 mb-1">Material</p>
-                                        <p className="font-medium text-gray-900">{product.material}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 mb-1">Texture</p>
-                                        <p className="font-medium text-gray-900">{product.texture}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 mb-1">Box Quantity</p>
-                                        <p className="font-medium text-gray-900">{product.quantityPerBox} pcs</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 mb-1">Coverage</p>
-                                        <p className="font-medium text-gray-900">
-                                            {product.coverage} {product.unitOfMeasurement}
+                                {/* Phần thông tin sản phẩm */}
+                                <div className="space-y-4 border-1 border-stone-200 rounded-lg shadow">
+                                    <div className='bg-stone-200 p-4 rounded-lg'>
+                                        <div className='flex justify-between'>
+                                            <h2 className="text-2xl font-bold text-gray-900">
+                                                {product.productDetails?.Name}
+                                            </h2>
+                                            <div className='flex gap-1'>
+                                                <button
+                                                    onClick={handleBookmark}
+                                                    className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${isBookmarked
+                                                        ? 'bg-white text-amber-300 fill-current'
+                                                        : 'text-gray-600 hover:bg-gray-100'
+                                                        }`}
+                                                >
+                                                    <Bookmark size={18} className={`${isBookmarked ? 'text-amber-300 fill-current' : 'text-gray-600'}`} />
+                                                </button>
+                                                <button
+                                                    onClick={handleShare}
+                                                    className="flex items-center gap-2 p-2 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                                                >
+                                                    <Share2 size={18} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p className="mt-2 text-lg text-gray-600 font-semibold">
+                                            Collection: {product.productDetails?.Collection}
                                         </p>
                                     </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <h3 className="font-semibold text-gray-900">Description</h3>
-                                    <p className="text-gray-600 leading-relaxed">
-                                        {product.material} {product.texture} Size: {product.size}.
-                                        Collection: {product.collection},
-                                        Quantity per box: {product.quantityPerBox},
-                                        Coverage: {product.coverage} {product.unitOfMeasurement}.
-                                    </p>
+                                    <div className="flex items-center justify-between p-4">
+                                        <div>
+                                            <p className="text-2xl font-bold text-primary">
+                                                ${product.partnerPrice?.toFixed(2)}
+                                            </p>
+                                            {product.productDetails?.UOM && (
+                                                <p className="text-sm text-gray-500">per {product.productDetails.UOM}</p>
+                                            )}
                                 </div>
                             </div>
-                        </div>
+
+                                    {/* Thông tin chi tiết */}
+                                    <div className="border-t border-gray-200 pt-6 p-4">
+                                        <h2 className="text-lg font-semibold mb-4">Product Details</h2>
+                                        <dl className="grid grid-cols-1 gap-4">
+                                            {product.productDetails?.Color && (
+                                                <div className="flex justify-between">
+                                                    <dt className="text-gray-600">Color</dt>
+                                                    <dd className="text-gray-900">{product.productDetails.Color}</dd>
+                                                </div>
+                                            )}
+                                            {product.productDetails?.Size && (
+                                                <div className="flex justify-between">
+                                                    <dt className="text-gray-600">Size</dt>
+                                                    <dd className="text-gray-900">{product.productDetails.Size}</dd>
+                                                </div>
+                                            )}
+                                            {product.productDetails?.Material && (
+                                                <div className="flex justify-between">
+                                                    <dt className="text-gray-600">Material</dt>
+                                                    <dd className="text-gray-900">{product.productDetails.Material}</dd>
+                                                </div>
+                                            )}
+                                            {product.productDetails?.["Color Group"] && (
+                                                <div className="flex justify-between">
+                                                    <dt className="text-gray-600">Color Group</dt>
+                                                    <dd className="text-gray-900">{product.productDetails["Color Group"]}</dd>
+                                                </div>
+                                            )}
+                                            {product.productDetails?.["Qty per Box"] && (
+                                                <div className="flex justify-between">
+                                                    <dt className="text-gray-600">Quantity per Box</dt>
+                                                    <dd className="text-gray-900">{product.productDetails["Qty per Box"]}</dd>
+                                                </div>
+                                            )}
+                                            {product.productDetails?.["Coverage (sqft)"] && (
+                                                <div className="flex justify-between">
+                                                    <dt className="text-gray-600">Coverage</dt>
+                                                    <dd className="text-gray-900">{product.productDetails["Coverage (sqft)"]} sqft</dd>
+                                                </div>
+                                            )}
+                                        </dl>
+                                    </div>
+
+                                    {/* Mô tả sử dụng */}
+                                    {product.productDetails?.Usage && (
+                                        <div className="border-t border-gray-200 pt-6 p-4">
+                                            <h2 className="text-lg font-semibold mb-4">Usage</h2>
+                                            <p className="text-gray-600 whitespace-pre-line">
+                                                {product.productDetails.Usage}
+                                    </p>
+                                </div>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center text-gray-500 py-8">
+                                <p>No product found</p>
                     </div>
-                </div>
+                )}
             </div>
-        </div>
+        </div >
     );
 } 
