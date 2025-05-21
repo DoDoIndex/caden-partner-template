@@ -1,18 +1,22 @@
 export interface Product {
     productId: number;
-    collection: string;
-    name: string;
-    texture: string;
-    material: string;
-    size: string;
-    sizeAdvance: string;
-    unitOfMeasurement: string;
-    quantityPerBox: number;
-    coverage: number;
-    unitPrice: number;
-    myUnitPrice: number;
-    weight: number;
-    color: string;
-    categories: string;
-    images: string;
+    productDetails: {
+        Usage: string;
+        Categories: string;
+        Trim: string;
+        Size: string;
+        Images: string;
+        Color: string;
+        Material: string;
+        unit_price: number;
+        Name: string;
+        "Color Group": string;
+        UOM: string;
+        "Photo Hover": string;
+        "Qty per Box": string;
+        Collection: string;
+        "Coverage (sqft)": string;
+        "Size Advanced": string;
+    };
+    partnerPrice: number;
 }

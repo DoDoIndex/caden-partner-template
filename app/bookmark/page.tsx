@@ -6,34 +6,19 @@ import { Product } from "@/app/types/product";
 import CardProduct from "@/app/components/Homepage/card-product";
 import ListProduct from "@/app/components/Homepage/list-product";
 import toast, { Toaster } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
+import { Trash } from "lucide-react";
 
 export default function BookmarkPage() {
     const [activeTab, setActiveTab] = useState("Saved");
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-    const [searchQuery, setSearchQuery] = useState("");
-    const [sortBy, setSortBy] = useState("date");
-    const [selectedCategory, setSelectedCategory] = useState("All");
-    const [previewImage, setPreviewImage] = useState<string | null>(null);
-    const [showCreateModal, setShowCreateModal] = useState(false);
-    const [newBookmark, setNewBookmark] = useState({
-        title: "",
-        category: "Wall Tile",
-        size: "",
-        image: ""
-    });
     const [bookmarks, setBookmarks] = useState<Product[]>([]);
-
-    const categories = [
-        "All",
-        "Vinyl Plank",
-        "Wall Tile",
-        "Floor Tile",
-        "Mosaic",
-        "Subway Tile",
-        "Pool Tile",
-        "Paver",
-        "Slabs"
-    ];
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [deleteItem, setDeleteItem] = useState<boolean>(false);
+    const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
+    const [collections, setCollections] = useState<any[]>([]);
+    const [newCollectionName, setNewCollectionName] = useState("");
+    const router = useRouter();
 
     useEffect(() => {
         const loadBookmarks = () => {
@@ -43,24 +28,39 @@ export default function BookmarkPage() {
                     if (storedBookmarks) {
                         const parsedBookmarks = JSON.parse(storedBookmarks);
                         if (Array.isArray(parsedBookmarks)) {
-                            // Chuyển đổi dữ liệu để phù hợp với interface Product
+                            // Chuẩn hóa dữ liệu về đúng interface Product
                             const validBookmarks = parsedBookmarks.map((bookmark: any) => ({
                                 productId: Number(bookmark.productId),
-                                collection: String(bookmark.collection),
-                                name: String(bookmark.name),
-                                texture: String(bookmark.texture),
-                                material: String(bookmark.material),
-                                size: String(bookmark.size),
-                                sizeAdvance: String(bookmark.sizeAdvance),
-                                unitOfMeasurement: String(bookmark.unitOfMeasurement),
-                                quantityPerBox: Number(bookmark.quantityPerBox),
-                                coverage: Number(bookmark.coverage),
-                                unitPrice: Number(bookmark.unitPrice),
-                                myUnitPrice: Number(bookmark.myUnitPrice),
-                                weight: Number(bookmark.weight),
-                                color: String(bookmark.color),
-                                categories: String(bookmark.categories),
-                                images: String(bookmark.images)
+                                partnerPrice: Number(bookmark.partnerPrice) || Number(bookmark.myUnitPrice) || 0,
+                                productDetails: bookmark.productDetails
+                                    ? {
+                                        ...bookmark.productDetails,
+                                        Images: Array.isArray(bookmark.productDetails.Images)
+                                            ? bookmark.productDetails.Images
+                                            : bookmark.productDetails.Images
+                                                ? [bookmark.productDetails.Images]
+                                                : bookmark.images
+                                                    ? [bookmark.images]
+                                                    : [],
+                                    }
+                                    : {
+                                        Usage: bookmark.usage || "",
+                                        Categories: bookmark.categories || "",
+                                        Trim: bookmark.trim || bookmark.texture || "",
+                                        Size: bookmark.size || "",
+                                        Images: bookmark.images ? (Array.isArray(bookmark.images) ? bookmark.images : [bookmark.images]) : [],
+                                        Color: bookmark.color || "",
+                                        Material: bookmark.material || "",
+                                        unit_price: bookmark.unitPrice || 0,
+                                        Name: bookmark.name || "",
+                                        "Color Group": bookmark.colorGroup || "",
+                                        UOM: bookmark.unitOfMeasurement || "",
+                                        "Photo Hover": bookmark.photoHover || "",
+                                        "Qty per Box": bookmark.quantityPerBox?.toString() || "",
+                                        Collection: bookmark.collection || "",
+                                        "Coverage (sqft)": bookmark.coverage?.toString() || "",
+                                        "Size Advanced": bookmark.sizeAdvance || "",
+                                    }
                             })) as Product[];
                             setBookmarks(validBookmarks);
                         }
@@ -90,181 +90,148 @@ export default function BookmarkPage() {
         };
     }, []);
 
-    const handleCreateBookmark = () => {
-        try {
-            if (!newBookmark.title || !newBookmark.image) {
-                console.error('Title and image are required');
-                return;
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem('collections');
+            if (stored) {
+                setCollections(JSON.parse(stored));
             }
+        }
+    }, []);
 
-            const bookmark: Product = {
-                productId: Date.now(),
-                collection: newBookmark.category,
-                name: newBookmark.title,
-                texture: "",
-                material: "",
-                size: newBookmark.size,
-                sizeAdvance: "",
-                unitOfMeasurement: "",
-                quantityPerBox: 0,
-                coverage: 0,
-                unitPrice: 0,
-                myUnitPrice: 0,
-                weight: 0,
-                color: "",
-                categories: newBookmark.category,
-                images: newBookmark.image
-            };
+    const handleSelectProduct = (id: number) => {
+        setSelectedProducts(prev =>
+            prev.includes(id) ? prev.filter(pid => pid !== id) : [...prev, id]
+        );
+    };
 
-            const updatedBookmarks = [bookmark, ...bookmarks];
-            setBookmarks(updatedBookmarks);
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('bookmarks', JSON.stringify(updatedBookmarks));
-            }
-
-            setShowCreateModal(false);
-            setNewBookmark({
-                title: "",
-                category: "Wall Tile",
-                size: "",
-                image: ""
-            });
-        } catch (error) {
-            console.error('Error creating bookmark:', error);
+    const handleCreateCollection = () => {
+        const selected = bookmarks.filter(p => selectedProducts.includes(p.productId));
+        if (!newCollectionName || selected.length === 0) return;
+        const newCol = {
+            name: newCollectionName,
+            products: selected.map(p => ({
+                ...p,
+                partnerPrice: p.partnerPrice || 0
+            }))
+        };
+        const updated = [...collections, newCol];
+        setCollections(updated);
+        setNewCollectionName("");
+        setSelectedProducts([]);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('collections', JSON.stringify(updated));
         }
     };
 
-    const handleDeleteBookmark = (productId: number) => {
-        try {
-            const updatedBookmarks = bookmarks.filter(bookmark => bookmark.productId !== productId);
-            setBookmarks(updatedBookmarks);
+    const handleUpdatePartnerPrice = (colIdx: number, prodIdx: number, value: number) => {
+        setCollections(prev => {
+            const updated = [...prev];
+            updated[colIdx].products[prodIdx].partnerPrice = value;
             if (typeof window !== 'undefined') {
-                localStorage.setItem('bookmarks', JSON.stringify(updatedBookmarks));
-                setTimeout(() => {
-                    toast.success('Deleted from bookmark');
-                    setBookmarks([...updatedBookmarks]);
-                }, 100);
+                localStorage.setItem('collections', JSON.stringify(updated));
             }
-        } catch (error) {
-            console.error('Error deleting bookmark:', error);
-            toast.error('Error deleting bookmark');
-        }
+            return updated;
+        });
     };
 
-    const filteredBookmarks = bookmarks.filter((item) => {
-        const matchesSearch = item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false;
-        const matchesCategory = selectedCategory === "All" || item.categories?.includes(selectedCategory);
-        return matchesSearch && matchesCategory;
-    });
+    const handleClearAllBookmarks = () => {
+        setBookmarks([]);
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('bookmarks');
+        }
+        toast.success('All bookmarks have been cleared');
+    };
 
-    console.log('Current bookmarks:', bookmarks); // Debug log
-    console.log('Filtered bookmarks:', filteredBookmarks); // Debug log
+    const handleDeleteCollection = (colIdx: number) => {
+        setCollections(prev => {
+            const updated = prev.filter((_, idx) => idx !== colIdx);
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('collections', JSON.stringify(updated));
+            }
+            return updated;
+        });
+        toast.success('Collection deleted');
+    };
+
+    const handleDeleteProductInCollection = (colIdx: number, prodIdx: number) => {
+        setCollections(prev => {
+            if (!prev[colIdx] || !prev[colIdx].products[prodIdx]) return prev;
+
+            const updated = [...prev];
+            const updatedProducts = [...updated[colIdx].products];
+            updatedProducts.splice(prodIdx, 1);
+
+            if (updatedProducts.length === 0) {
+                updated.splice(colIdx, 1);
+            } else {
+                updated[colIdx] = { ...updated[colIdx], products: updatedProducts };
+            }
+
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('collections', JSON.stringify(updated));
+            }
+
+            return updated;
+        });
+        toast.success('Product removed from collection');
+    };
+
+
+    const handleGoToDesignPage = () => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('designCollection', JSON.stringify(collections));
+        }
+        router.push('/design');
+    };
 
     const savedContent = (
         <div className="w-full py-4 sm:py-6">
             {/* Header Actions */}
-            <div className="flex flex-col gap-4 mb-6 sm:mb-8">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                        <button
-                            onClick={() => setShowCreateModal(true)}
-                            className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
-                        >
-                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            Create New Bookmark
-                        </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setViewMode("grid")}
-                            className={`p-2 rounded-lg ${viewMode === "grid" ? "bg-primary text-white" : "bg-white text-gray-600"}`}
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                            </svg>
-                        </button>
-                        <button
-                            onClick={() => setViewMode("list")}
-                            className={`p-2 rounded-lg ${viewMode === "list" ? "bg-primary text-white" : "bg-white text-gray-600"}`}
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-                {/* Search and Filter */}
-                <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="flex-grow">
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="Search bookmarks..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full px-4 py-2 pl-10 bg-white rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                            />
-                            <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </div>
-                    </div>
-                    <div className="flex gap-4">
-                        <select
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value)}
-                            className="px-4 py-2 bg-white rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        >
-                            <option value="date">Sort by Date</option>
-                            <option value="title">Sort by Title</option>
-                        </select>
-                        <select
-                            value={selectedCategory}
-                            onChange={(e) => setSelectedCategory(e.target.value)}
-                            className="px-4 py-2 bg-white rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        >
-                            {categories.map((category) => (
-                                <option key={category} value={category}>
-                                    {category}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
+            <div className="flex items-center gap-2 mb-6">
+                <button
+                    onClick={() => setViewMode("grid")}
+                    className={`p-2 rounded-lg ${viewMode === "grid" ? "bg-primary text-white" : "bg-white text-gray-600"}`}
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                </button>
+                <button
+                    onClick={() => setViewMode("list")}
+                    className={`p-2 rounded-lg ${viewMode === "list" ? "bg-primary text-white" : "bg-white text-gray-600"}`}
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+                <button
+                    onClick={handleClearAllBookmarks}
+                    className="ml-auto p-2 rounded-lg bg-gray-100 text-gray-300 hover:bg-red-500 hover:text-white transition-colors"
+                    disabled={bookmarks.length === 0}
+                >
+                    <Trash />
+                </button>
             </div>
-
             {/* Empty State */}
-            {filteredBookmarks.length === 0 && (
+            {bookmarks.length === 0 && (
                 <div className="text-center py-12">
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                         </svg>
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No Bookmarks Yet</h3>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No bookmarks yet</h3>
                     <p className="text-gray-600 mb-6">Start bookmarking your favorite items</p>
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="inline-flex items-center justify-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-                    >
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        Create New Bookmark
-                    </button>
                 </div>
             )}
-
             {/* Bookmarks Grid/List */}
-            {filteredBookmarks.length > 0 ? (
+            {bookmarks.length > 0 ? (
                 <div className={viewMode === 'grid'
                     ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
                     : "space-y-4"
                 }>
-                    {filteredBookmarks.map((product) => (
+                    {bookmarks.map((product) => (
                         <div key={product.productId}>
                             {viewMode === 'grid' ? (
                                 <CardProduct product={product} />
@@ -279,7 +246,6 @@ export default function BookmarkPage() {
                     <p className="text-gray-500">No bookmarks found</p>
                     </div>
             )}
-
             {/* Image Preview Modal */}
             {previewImage && (
                 <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4" onClick={() => setPreviewImage(null)}>
@@ -301,105 +267,113 @@ export default function BookmarkPage() {
                     </div>
                 </div>
             )}
-
-            {/* Create Bookmark Modal */}
-            {showCreateModal && (
-                <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl p-6 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-xl font-semibold text-gray-900">Create New Bookmark</h3>
-                            <button
-                                onClick={() => setShowCreateModal(false)}
-                                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                                <input
-                                    type="text"
-                                    value={newBookmark.title}
-                                    onChange={(e) => setNewBookmark({ ...newBookmark, title: e.target.value })}
-                                    className="w-full px-4 py-2 bg-white rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                    placeholder="Enter bookmark title"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                                <select
-                                    value={newBookmark.category}
-                                    onChange={(e) => setNewBookmark({ ...newBookmark, category: e.target.value })}
-                                    className="w-full px-4 py-2 bg-white rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                >
-                                    {categories.filter(cat => cat !== "All").map((category) => (
-                                        <option key={category} value={category}>
-                                            {category}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Size</label>
-                                <input
-                                    type="text"
-                                    value={newBookmark.size}
-                                    onChange={(e) => setNewBookmark({ ...newBookmark, size: e.target.value })}
-                                    className="w-full px-4 py-2 bg-white rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                    placeholder="Enter size (e.g., 3x12)"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                                <input
-                                    type="text"
-                                    value={newBookmark.image}
-                                    onChange={(e) => setNewBookmark({ ...newBookmark, image: e.target.value })}
-                                    className="w-full px-4 py-2 bg-white rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                    placeholder="Enter image URL"
-                                />
-                            </div>
-                        </div>
-                        <div className="flex justify-end gap-4 mt-6">
-                            <button
-                                onClick={() => setShowCreateModal(false)}
-                                className="px-4 py-2 text-gray-600 hover:text-red-500 transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleCreateBookmark}
-                                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-                            >
-                                Create Bookmark
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 
     const createdContent = (
-        <div className="w-full py-4 sm:py-6">
-            <div className="text-center py-8 sm:py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
+        <div className="w-full py-4 sm:py-6 relative">
+            {/* Create collection from bookmarks */}
+            <div className="mb-8">
+                <div className="mb-4 flex flex-col sm:flex-row gap-2 items-center">
+                    <input
+                        type="text"
+                        placeholder="New collection name"
+                        value={newCollectionName}
+                        onChange={e => setNewCollectionName(e.target.value)}
+                        className="px-4 py-2 border rounded-lg mr-2"
+                    />
+                    <button
+                        onClick={handleCreateCollection}
+                        className="px-4 py-2 bg-primary text-white rounded-lg"
+                        disabled={!newCollectionName || selectedProducts.length === 0}
+                    >
+                        Create collection
+                    </button>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Collections Yet</h3>
-                <p className="text-gray-600 mb-6">Create your first collection to get started</p>
-                <button className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Create New Collection
-                </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {bookmarks.map(product => (
+                        <div key={product.productId} className="border rounded-lg p-4 flex items-center gap-4">
+                            <input
+                                type="checkbox"
+                                checked={selectedProducts.includes(product.productId)}
+                                onChange={() => handleSelectProduct(product.productId)}
+                            />
+                            <div className="flex-1 flex items-center gap-3">
+                                {product.productDetails?.Images && product.productDetails.Images[0] && (
+                                    <Image
+                                        src={product.productDetails.Images[0]}
+                                        alt={product.productDetails?.Name || 'Product'}
+                                        width={48}
+                                        height={48}
+                                        className="rounded object-cover"
+                                    />
+                                )}
+                                <div>
+                                    <div className="font-semibold">{product.productDetails?.Name}</div>
+                                    <div className="text-xs text-gray-500">{product.productDetails?.Collection}</div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
+            {/* Show created collections */}
+            <div className="mt-8">
+                <h2 className="text-xl font-bold mb-4">Created collections</h2>
+                {collections.length === 0 && <div className="text-gray-500">No collection yet</div>}
+                {collections.map((col, idx) => (
+                    <div key={idx} className="mb-6 border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="font-semibold">{col.name}</div>
+                            <button
+                                className="px-2 py-1 text-xs flex items-center gap-2 bg-gray-200 text-gray-500 rounded hover:bg-red-500 hover:text-white"
+                                onClick={() => handleDeleteCollection(idx)}
+                            >
+                                <Trash size={16} /> Delete collection
+                            </button>
+                        </div>
+                        <div className="space-y-2">
+                            {col.products.map((prod: any, i: number) => (
+                                <div key={prod.productId} className="flex items-center gap-4">
+                                    {prod.productDetails?.Images && prod.productDetails.Images[0] && (
+                                        <Image
+                                            src={prod.productDetails.Images[0]}
+                                            alt={prod.productDetails?.Name || 'Product'}
+                                            width={40}
+                                            height={40}
+                                            className="rounded object-cover"
+                                        />
+                                    )}
+                                    <span className="flex-1">{prod.productDetails?.Name}</span>
+                                    <input
+                                        type="number"
+                                        value={prod.partnerPrice}
+                                        min={0}
+                                        step={0.01}
+                                        className="w-24 px-2 py-1 border rounded"
+                                        onChange={e => handleUpdatePartnerPrice(idx, i, Number(e.target.value))}
+                                    />
+                                    <span className="text-xs text-gray-500">USD</span>
+                                    <button
+                                        className="ml-2 p-1 text-xs hover:bg-gray-200 rounded"
+                                        onClick={() => handleDeleteProductInCollection(idx, i)}
+                                    >
+                                        <Trash size={16} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+            {/* Design Page Button */}
+            <button
+                className="fixed right-8 bottom-8 px-6 py-3 bg-primary text-white rounded-full shadow-lg hover:bg-primary/90 transition-colors z-50"
+                onClick={handleGoToDesignPage}
+                disabled={collections.length === 0}
+            >
+                Design Page
+            </button>
         </div>
     );
 

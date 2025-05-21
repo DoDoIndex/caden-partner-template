@@ -61,14 +61,11 @@ export default function PartnerPage() {
             <section className="relative h-[60vh] bg-gradient-to-r from-sky-500 to-sky-600">
                 <div className="absolute inset-0 bg-black/50" />
                 <div className="relative container mx-auto px-4 h-full flex items-center">
-                    <div className="text-white max-w-2xl">
+                    <div className="text-white max-w-2xl p-5">
                         <h1 className="text-5xl font-bold mb-6">Become Our Partner</h1>
                         <p className="text-xl mb-8">
                             Let's build the future together and create sustainable value
                         </p>
-                        <button className="bg-white text-sky-600 px-8 py-3 rounded-lg font-semibold hover:bg-sky-100 transition-colors">
-                            Register Now
-                        </button>
                     </div>
                 </div>
             </section>

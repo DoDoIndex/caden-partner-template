@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    domains: ['cadentile.com'],
+    domains: ['cadentile.com', 'cdn.swell.store'],
   }
 };
 
