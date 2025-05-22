@@ -77,7 +77,7 @@ export default function ListProduct({ product }: ListProductProps) {
                         className="p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"
                         title={isBookmarked ? "Remove from bookmarks" : "Add to bookmarks"}
                     >
-                        <svg className={`w-5 h-5 ${isBookmarked ? 'text-amber-300 fill-current' : 'text-gray-600'}`} viewBox="0 0 24 24">
+                        <svg className={`w-5 h-5 ${isBookmarked ? 'text-amber-600 fill-current' : 'text-gray-600'}`} viewBox="0 0 24 24">
                             <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" />
                         </svg>
                     </button>

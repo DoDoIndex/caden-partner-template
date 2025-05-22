@@ -18,6 +18,7 @@ export default function BookmarkPage() {
     const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
     const [collections, setCollections] = useState<any[]>([]);
     const [newCollectionName, setNewCollectionName] = useState("");
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -136,11 +137,16 @@ export default function BookmarkPage() {
     };
 
     const handleClearAllBookmarks = () => {
+        setShowConfirmModal(true);
+    };
+
+    const confirmClearAllBookmarks = () => {
         setBookmarks([]);
         if (typeof window !== 'undefined') {
             localStorage.removeItem('bookmarks');
         }
         toast.success('All bookmarks have been cleared');
+        setShowConfirmModal(false);
     };
 
     const handleDeleteCollection = (colIdx: number) => {
@@ -207,10 +213,10 @@ export default function BookmarkPage() {
                 </button>
                 <button
                     onClick={handleClearAllBookmarks}
-                    className="ml-auto p-2 rounded-lg bg-gray-100 text-gray-300 hover:bg-red-500 hover:text-white transition-colors"
+                    className="ml-auto text-gray-500 hover:text-red-500 transition-colors"
                     disabled={bookmarks.length === 0}
                 >
-                    <Trash />
+                    Clear All
                 </button>
             </div>
             {/* Empty State */}
@@ -391,6 +397,32 @@ export default function BookmarkPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Confirm Delete Modal */}
+            {showConfirmModal && (
+                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white/95 backdrop-blur-sm rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+                        <h3 className="text-xl font-semibold text-stone-900 mb-4">Confirm Delete</h3>
+                        <p className="text-stone-600 mb-6">
+                            Are you sure you want to delete all saved bookmarks? This action cannot be undone.
+                        </p>
+                        <div className="flex justify-end gap-4">
+                            <button
+                                onClick={() => setShowConfirmModal(false)}
+                                className="px-4 py-2 text-stone-600 hover:text-stone-900 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmClearAllBookmarks}
+                                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                            >
+                                Delete All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

@@ -186,11 +186,11 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                                                 <button
                                                     onClick={handleBookmark}
                                                     className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${isBookmarked
-                                                        ? 'bg-white text-amber-300 fill-current'
+                                                        ? 'text-amber-600 fill-current hover:bg-gray-100'
                                                         : 'text-gray-600 hover:bg-gray-100'
                                                         }`}
                                                 >
-                                                    <Bookmark size={18} className={`${isBookmarked ? 'text-amber-300 fill-current' : 'text-gray-600'}`} />
+                                                    <Bookmark size={18} className={`${isBookmarked ? 'text-amber-600 fill-current' : 'text-gray-600'}`} />
                                                 </button>
                                                 <button
                                                     onClick={handleShare}

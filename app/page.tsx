@@ -6,55 +6,36 @@ import SidebarWrapper from "@/app/components/Homepage/sidebar-wrapper";
 import CardProduct from "@/app/components/Homepage/card-product";
 import ListProduct from "@/app/components/Homepage/list-product";
 import { Product } from "@/app/types/product";
+import React from 'react';
 
 export default function HomePage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 40;
   const [filters, setFilters] = useState({
-    category: '',
-    minPrice: '',
-    maxPrice: '',
-    inStock: '',
-    search: ''
+    sort: ''
   });
 
-  // Tính toán phân trang
-  const totalPages = Math.ceil(products.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentProducts = products.slice(startIndex, endIndex);
-
-  // Hàm xử lý chuyển trang
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Reset về trang 1 khi thay đổi filter
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filters]);
-
+  // Fetch products khi component mount
   useEffect(() => {
     fetchProducts();
-  }, [filters]);
+  }, []);
+
+  // Cập nhật filteredProducts khi products thay đổi
+  useEffect(() => {
+    setFilteredProducts(products);
+  }, [products]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Build query string from filters
-      const queryParams = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) queryParams.append(key, value);
-      });
-
-      const response = await fetch(`/api/catalog?${queryParams.toString()}`);
+      const response = await fetch('/api/catalog');
       if (!response.ok) {
         throw new Error('Failed to fetch products');
       }
@@ -62,7 +43,6 @@ export default function HomePage() {
       const data = await response.json();
       if (data.success) {
         setProducts(data.data);
-        console.log('Products JSON:', JSON.stringify(data.data, null, 2));
       } else {
         throw new Error(data.error || 'Failed to fetch products');
       }
@@ -74,11 +54,46 @@ export default function HomePage() {
     }
   };
 
+  const handleSidebarFilter = React.useCallback((filtered: Product[]) => {
+    setFilteredProducts(filtered);
+    setCurrentPage(1); // Reset về trang 1 khi filter thay đổi
+  }, []);
+
+  const sortedProducts = React.useMemo(() => {
+    if (!filters.sort) return filteredProducts;
+
+    return [...filteredProducts].sort((a, b) => {
+      switch (filters.sort) {
+        case 'price_asc':
+          return (a.partnerPrice || a.productDetails?.unit_price || 0) - (b.partnerPrice || b.productDetails?.unit_price || 0);
+        case 'price_desc':
+          return (b.partnerPrice || b.productDetails?.unit_price || 0) - (a.partnerPrice || a.productDetails?.unit_price || 0);
+        case 'name_asc':
+          return (a.productDetails?.Name || '').localeCompare(b.productDetails?.Name || '');
+        case 'name_desc':
+          return (b.productDetails?.Name || '').localeCompare(a.productDetails?.Name || '');
+        default:
+          return 0;
+      }
+    });
+  }, [filteredProducts, filters.sort]);
+
+  // Tính toán phân trang với sản phẩm đã lọc và sắp xếp
+  const totalPages = Math.ceil(sortedProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentProducts = sortedProducts.slice(startIndex, endIndex);
+
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({
       ...prev,
       [key]: value
     }));
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -93,7 +108,7 @@ export default function HomePage() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar */}
           <div className="w-full lg:w-1/4">
-            <SidebarWrapper />
+            <SidebarWrapper products={products} onFilterChange={handleSidebarFilter} />
           </div>
 
           {/* Main Content */}
@@ -103,15 +118,17 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <select
                   className="w-full sm:w-auto rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  value={filters.sort}
                   onChange={(e) => handleFilterChange('sort', e.target.value)}
                 >
                   <option value="">Sort by</option>
-                  <option value="newest">Newest</option>
                   <option value="price_asc">Price: Low to High</option>
                   <option value="price_desc">Price: High to Low</option>
+                  <option value="name_asc">Name: A to Z</option>
+                  <option value="name_desc">Name: Z to A</option>
                 </select>
                 <span className="text-sm text-gray-600">
-                  Showing {startIndex + 1}-{Math.min(endIndex, products.length)} of {products.length} products
+                  Showing {startIndex + 1}-{Math.min(endIndex, sortedProducts.length)} of {sortedProducts.length} products
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -169,7 +186,7 @@ export default function HomePage() {
             )}
 
             {/* Empty State */}
-            {!loading && !error && products.length === 0 && (
+            {!loading && !error && sortedProducts.length === 0 && (
               <div className="text-center py-12">
                 <p className="text-gray-500">No products found</p>
               </div>

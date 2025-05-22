@@ -2,11 +2,17 @@
 
 import { Suspense } from 'react';
 import Sidebar from './sidebar';
+import { Product } from "@/app/types/product";
 
-export default function SidebarWrapper() {
+interface SidebarWrapperProps {
+    products: Product[];
+    onFilterChange: (filteredProducts: Product[]) => void;
+}
+
+export default function SidebarWrapper({ products, onFilterChange }: SidebarWrapperProps) {
     return (
         <Suspense fallback={<div>Loading filters...</div>}>
-            <Sidebar />
+            <Sidebar products={products} onFilterChange={onFilterChange} />
         </Suspense>
     );
 } 
