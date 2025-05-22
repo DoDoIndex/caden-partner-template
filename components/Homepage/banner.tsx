@@ -6,7 +6,7 @@ import { ArrowUpRight } from "lucide-react";
 import { Button } from "../ui/button";
 import Image from "next/image";
 
-export default function Baner() {
+export default function Banner() {
     const [images, setImages] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -100,7 +100,7 @@ export default function Baner() {
                     </p>
                     <Button
                         variant="outline"
-                        className="text-black border-2 hover:bg-amber-500 hover:border-black hover:text-white"
+                        className="text-white border-black bg-gray-900 hover:bg-black hover:text-white"
                         onClick={() => window.open('https://www.instagram.com/cadentile/', '_blank')}>
                         See our Instagram <ArrowUpRight size={16} />
                     </Button>
