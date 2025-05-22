@@ -57,12 +57,12 @@ export default function ListProduct({ product }: ListProductProps) {
 
     return (
         <div
-            className="group flex items-center gap-4 bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
+            className="group flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             onClick={handleProductClick}
         >
-            <div className="w-24 h-24 flex-shrink-0 relative overflow-hidden rounded-lg">
+            <div className="w-full sm:w-24 h-24 flex-shrink-0 relative overflow-hidden rounded-lg">
                 {product.productDetails.Images && (
                     <img
                         src={product.productDetails.Images}
@@ -92,11 +92,11 @@ export default function ListProduct({ product }: ListProductProps) {
                     </button>
                 </div>
             </div>
-            <div className="flex-grow">
+            <div className="flex-grow w-full">
                 <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-primary transition-colors">
                     {product.productDetails.Name}
                 </h3>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
                     <span className="px-2 py-1 bg-gray-100 rounded-full">{product.productDetails.Collection}</span>
                     <span>•</span>
                     <span className="px-2 py-1 bg-gray-100 rounded-full">{product.productDetails.Size}</span>
@@ -105,10 +105,10 @@ export default function ListProduct({ product }: ListProductProps) {
                 </div>
                 <p className="mt-2 text-sm text-gray-500">{product.productDetails.Trim}</p>
             </div>
-            <div className="flex flex-col items-end">
+            <div className="flex flex-col items-start sm:items-end w-full sm:w-auto mt-4 sm:mt-0">
                 <div className="text-lg font-semibold text-primary">${product.partnerPrice}</div>
                 <div className="text-sm text-gray-500">/ {product.productDetails.UOM}</div>
-                <div className="mt-2 text-sm text-gray-600 text-right">
+                <div className="mt-2 text-sm text-gray-600 text-left sm:text-right">
                     <div>Box: {product.productDetails["Qty per Box"]} pcs</div>
                     <div>Coverage: {product.productDetails["Coverage (sqft)"]} {product.productDetails.UOM}</div>
                 </div>
