@@ -19,6 +19,10 @@ export default function BookmarkPage() {
     const [collections, setCollections] = useState<any[]>([]);
     const [newCollectionName, setNewCollectionName] = useState("");
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showDeleteCollectionModal, setShowDeleteCollectionModal] = useState(false);
+    const [collectionToDelete, setCollectionToDelete] = useState<number | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 40;
     const router = useRouter();
 
     useEffect(() => {
@@ -150,14 +154,23 @@ export default function BookmarkPage() {
     };
 
     const handleDeleteCollection = (colIdx: number) => {
-        setCollections(prev => {
-            const updated = prev.filter((_, idx) => idx !== colIdx);
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('collections', JSON.stringify(updated));
-            }
-            return updated;
-        });
-        toast.success('Collection deleted');
+        setCollectionToDelete(colIdx);
+        setShowDeleteCollectionModal(true);
+    };
+
+    const confirmDeleteCollection = () => {
+        if (collectionToDelete !== null) {
+            setCollections(prev => {
+                const updated = prev.filter((_, idx) => idx !== collectionToDelete);
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('collections', JSON.stringify(updated));
+                }
+                return updated;
+            });
+            toast.success('Collection deleted');
+            setShowDeleteCollectionModal(false);
+            setCollectionToDelete(null);
+        }
     };
 
     const handleDeleteProductInCollection = (colIdx: number, prodIdx: number) => {
@@ -233,20 +246,71 @@ export default function BookmarkPage() {
             )}
             {/* Bookmarks Grid/List */}
             {bookmarks.length > 0 ? (
-                <div className={viewMode === 'grid'
-                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
-                    : "space-y-4"
-                }>
-                    {bookmarks.map((product) => (
-                        <div key={product.productId}>
-                            {viewMode === 'grid' ? (
-                                <CardProduct product={product} />
-                            ) : (
-                                <ListProduct product={product} />
-                            )}
+                <>
+                    <div className={viewMode === 'grid'
+                        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
+                        : "space-y-4"
+                    }>
+                        {bookmarks
+                            .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                            .map((product) => (
+                                <div key={product.productId}>
+                                    {viewMode === 'grid' ? (
+                                        <CardProduct product={product} />
+                                    ) : (
+                                        <ListProduct product={product} />
+                                    )}
+                                </div>
+                            ))}
+                    </div>
+
+                    {/* Pagination */}
+                    {bookmarks.length > itemsPerPage && (
+                        <div className="mt-8">
+                            <div className="flex flex-col items-center justify-center gap-4">
+                                <div className="text-sm text-gray-600">
+                                    Page {currentPage} of {Math.ceil(bookmarks.length / itemsPerPage)}
+                                </div>
+                                <nav className="flex items-center justify-center gap-2">
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className={`rounded-lg border border-gray-200 px-3 sm:px-4 py-2 text-sm transition-colors ${currentPage === 1
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-white text-gray-700 hover:bg-gray-50'
+                                            }`}
+                                    >
+                                        Previous
+                                    </button>
+
+                                    {Array.from({ length: Math.ceil(bookmarks.length / itemsPerPage) }, (_, i) => i + 1).map((page) => (
+                                        <button
+                                            key={page}
+                                            onClick={() => setCurrentPage(page)}
+                                            className={`rounded-lg px-3 sm:px-4 py-2 text-sm transition-colors ${currentPage === page
+                                                ? 'bg-primary text-white hover:bg-primary/90'
+                                                : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                                                }`}
+                                        >
+                                            {page}
+                                        </button>
+                                    ))}
+
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(bookmarks.length / itemsPerPage)))}
+                                        disabled={currentPage === Math.ceil(bookmarks.length / itemsPerPage)}
+                                        className={`rounded-lg border border-gray-200 px-3 sm:px-4 py-2 text-sm transition-colors ${currentPage === Math.ceil(bookmarks.length / itemsPerPage)
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-white text-gray-700 hover:bg-gray-50'
+                                            }`}
+                                    >
+                                        Next
+                                    </button>
+                                </nav>
+                            </div>
                         </div>
-                    ))}
-                </div>
+                    )}
+                </>
             ) : (
                 <div className="text-center py-12">
                     <p className="text-gray-500">No bookmarks found</p>
@@ -280,31 +344,33 @@ export default function BookmarkPage() {
         <div className="w-full py-4 sm:py-6 relative">
             {/* Create collection from bookmarks */}
             <div className="mb-8">
-                <div className="mb-4 flex flex-col sm:flex-row gap-2 items-center">
+                <div className="mb-4 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
                     <input
                         type="text"
                         placeholder="New collection name"
                         value={newCollectionName}
                         onChange={e => setNewCollectionName(e.target.value)}
-                        className="px-4 py-2 border rounded-lg mr-2"
+                        className="w-full sm:w-auto px-4 py-2 border rounded-lg"
                     />
                     <button
                         onClick={handleCreateCollection}
-                        className="px-4 py-2 bg-primary text-white rounded-lg"
+                        className="w-full sm:w-auto px-4 py-2 bg-primary text-white rounded-lg"
                         disabled={!newCollectionName || selectedProducts.length === 0}
                     >
                         Create collection
                     </button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                <div className="space-y-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 max-h-[60vh] overflow-y-auto pr-2">
                     {bookmarks.map(product => (
-                        <div key={product.productId} className="border rounded-lg p-4 flex items-center gap-4">
+                        <div key={product.productId} className="border rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                             <input
                                 type="checkbox"
                                 checked={selectedProducts.includes(product.productId)}
                                 onChange={() => handleSelectProduct(product.productId)}
+                                className="mt-1 sm:mt-0"
                             />
-                            <div className="flex-1 flex items-center gap-3">
+                            <div className="flex-1 flex flex-col sm:flex-row items-start sm:items-center gap-3">
                                 {product.productDetails?.Images && product.productDetails.Images[0] && (
                                     <Image
                                         src={product.productDetails.Images[0]}
@@ -324,48 +390,54 @@ export default function BookmarkPage() {
                 </div>
             </div>
             {/* Show created collections */}
-            <div className="mt-8">
+            <div>
                 <h2 className="text-xl font-bold mb-4">Created collections</h2>
                 {collections.length === 0 && <div className="text-gray-500">No collection yet</div>}
                 {collections.map((col, idx) => (
                     <div key={idx} className="mb-6 border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="font-semibold">{col.name}</div>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
+                            <div className="font-semibold w-full sm:w-auto">{col.name}</div>
                             <button
-                                className="px-2 py-1 text-xs flex items-center gap-2 bg-gray-200 text-gray-500 rounded hover:bg-red-500 hover:text-white"
+                                className="p-2 text-gray-500 hover:text-red-500 transition-colors rounded-full hover:bg-gray-100 sm:rounded-lg sm:bg-gray-200 sm:flex sm:items-center sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs self-end sm:self-auto"
                                 onClick={() => handleDeleteCollection(idx)}
+                                title="Delete collection"
                             >
-                                <Trash size={16} /> Delete collection
+                                <Trash size={20} className="sm:w-4 sm:h-4" />
+                                <span className="hidden sm:inline">Delete collection</span>
                             </button>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             {col.products.map((prod: any, i: number) => (
-                                <div key={prod.productId} className="flex items-center gap-4">
-                                    {prod.productDetails?.Images && prod.productDetails.Images[0] && (
-                                        <Image
-                                            src={prod.productDetails.Images[0]}
-                                            alt={prod.productDetails?.Name || 'Product'}
-                                            width={40}
-                                            height={40}
-                                            className="rounded object-cover"
+                                <div key={prod.productId} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-2 bg-gray-50 rounded">
+                                    <div className="flex items-center gap-3 flex-1">
+                                        {prod.productDetails?.Images && prod.productDetails.Images[0] && (
+                                            <Image
+                                                src={prod.productDetails.Images[0]}
+                                                alt={prod.productDetails?.Name || 'Product'}
+                                                width={40}
+                                                height={40}
+                                                className="rounded object-cover"
+                                            />
+                                        )}
+                                        <span className="flex-1">{prod.productDetails?.Name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                                        <input
+                                            type="number"
+                                            value={prod.partnerPrice}
+                                            min={0}
+                                            step={0.01}
+                                            className="w-full sm:w-24 px-2 py-1 border rounded"
+                                            onChange={e => handleUpdatePartnerPrice(idx, i, Number(e.target.value))}
                                         />
-                                    )}
-                                    <span className="flex-1">{prod.productDetails?.Name}</span>
-                                    <input
-                                        type="number"
-                                        value={prod.partnerPrice}
-                                        min={0}
-                                        step={0.01}
-                                        className="w-24 px-2 py-1 border rounded"
-                                        onChange={e => handleUpdatePartnerPrice(idx, i, Number(e.target.value))}
-                                    />
-                                    <span className="text-xs text-gray-500">USD</span>
-                                    <button
-                                        className="ml-2 p-1 text-xs hover:bg-gray-200 rounded"
-                                        onClick={() => handleDeleteProductInCollection(idx, i)}
-                                    >
-                                        <Trash size={16} />
-                                    </button>
+                                        <span className="text-xs text-gray-500">USD</span>
+                                        <button
+                                            className="p-1 text-xs hover:bg-gray-200 rounded"
+                                            onClick={() => handleDeleteProductInCollection(idx, i)}
+                                        >
+                                            <Trash size={16} />
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -374,7 +446,7 @@ export default function BookmarkPage() {
             </div>
             {/* Design Page Button */}
             <button
-                className="fixed right-8 bottom-8 px-6 py-3 bg-primary text-white rounded-full shadow-lg hover:bg-primary/90 transition-colors z-50"
+                className="fixed right-4 sm:right-8 bottom-4 sm:bottom-8 px-4 sm:px-6 py-2 sm:py-3 bg-primary text-white rounded-full shadow-lg hover:bg-primary/90 transition-colors z-50 text-sm sm:text-base"
                 onClick={handleGoToDesignPage}
                 disabled={collections.length === 0}
             >
@@ -418,6 +490,35 @@ export default function BookmarkPage() {
                                 className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                             >
                                 Delete All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirm Delete Collection Modal */}
+            {showDeleteCollectionModal && (
+                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white/95 backdrop-blur-sm rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+                        <h3 className="text-xl font-semibold text-stone-900 mb-4">Delete Collection</h3>
+                        <p className="text-stone-600 mb-6">
+                            Are you sure you want to delete this collection? This action cannot be undone.
+                        </p>
+                        <div className="flex justify-end gap-4">
+                            <button
+                                onClick={() => {
+                                    setShowDeleteCollectionModal(false);
+                                    setCollectionToDelete(null);
+                                }}
+                                className="px-4 py-2 text-stone-600 hover:text-stone-900 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDeleteCollection}
+                                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                            >
+                                Delete
                             </button>
                         </div>
                     </div>
