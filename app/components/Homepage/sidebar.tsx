@@ -106,7 +106,7 @@ export default function Sidebar({ products, onFilterChange }: SidebarProps) {
             const productCategory = product.productDetails?.Categories?.toLowerCase() || '';
             const productMaterial = product.productDetails?.Material?.toLowerCase() || '';
             const productUsage = product.productDetails?.Usage?.toLowerCase() || '';
-            const productColor = product.productDetails?.Color?.toLowerCase() || '';
+            const productColorGroups = (product.productDetails?.["Color Group"]?.toLowerCase() || '').split('\n');
 
             if (normFilters.categories.length && !normFilters.categories.includes('all products')) {
                 const match = normFilters.categories.some(c => productCategory.includes(c));
@@ -124,7 +124,9 @@ export default function Sidebar({ products, onFilterChange }: SidebarProps) {
             }
 
             if (normFilters.colors.length) {
-                const match = normFilters.colors.some(c => productColor.includes(c));
+                const match = normFilters.colors.some(color =>
+                    productColorGroups.some(group => group.includes(color))
+                );
                 if (!match) return false;
             }
 
@@ -235,7 +237,7 @@ export default function Sidebar({ products, onFilterChange }: SidebarProps) {
                             {categories.map((category) => (
                                 <li key={category} className="flex gap-2 items-center">
                                     <Checkbox
-                                        className="border-sky-950"
+                                        className="border-stone-500"
                                         checked={filters.categories.includes(category)}
                                         onCheckedChange={() => handleFilterChange('categories', category)}
                                     />
@@ -252,7 +254,7 @@ export default function Sidebar({ products, onFilterChange }: SidebarProps) {
                             {materials.map((material) => (
                                 <li key={material} className="flex gap-2 items-center">
                                     <Checkbox
-                                        className="border-sky-950"
+                                        className="border-stone-500"
                                         checked={filters.materials.includes(material)}
                                         onCheckedChange={() => handleFilterChange('materials', material)}
                                     />
@@ -269,7 +271,7 @@ export default function Sidebar({ products, onFilterChange }: SidebarProps) {
                             {usages.map((app) => (
                                 <div key={app} className="flex gap-2 items-center">
                                     <Checkbox
-                                        className="border-sky-950"
+                                        className="border-stone-500"
                                         checked={filters.usages.includes(app)}
                                         onCheckedChange={() => handleFilterChange('usages', app)}
                                     />
