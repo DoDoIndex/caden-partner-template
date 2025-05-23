@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Baner from "@/components/Homepage/baner";
+import Banner from "@/components/Homepage/banner";
 import SidebarWrapper from "@/app/components/Homepage/sidebar-wrapper";
 import CardProduct from "@/app/components/Homepage/card-product";
 import ListProduct from "@/app/components/Homepage/list-product";
@@ -100,7 +100,7 @@ export default function HomePage() {
     <>
       {/* Banner Section - Full Width */}
       <div className="w-full">
-        <Baner />
+        <Banner />
       </div>
 
       {/* Main Content */}
