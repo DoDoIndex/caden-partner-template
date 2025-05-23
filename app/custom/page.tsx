@@ -261,7 +261,7 @@ export default function CustomPage() {
     const brands = Array.from(new Set(allProducts.map(p => p.productDetails?.Collection).filter(Boolean)));
     const colors = Array.from(new Set(allProducts.map(p => p.productDetails?.["Color Group"]).filter(Boolean)));
     const sizes = Array.from(new Set(allProducts.map(p => p.productDetails?.Size).filter(Boolean)));
-    const prices = allProducts.map(p => p.partnerPrice).filter(Boolean);
+    const prices = allProducts.map(p => p.productDetails.unit_price).filter(Boolean);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
 
@@ -281,14 +281,14 @@ export default function CustomPage() {
         if (selectedBrand && p.productDetails?.Collection !== selectedBrand) return false;
         if (selectedColor && p.productDetails?.["Color Group"] !== selectedColor) return false;
         if (selectedSize && p.productDetails?.Size !== selectedSize) return false;
-        if (p.partnerPrice < selectedPrice[0] || p.partnerPrice > selectedPrice[1]) return false;
+        if (p.productDetails.unit_price < selectedPrice[0] || p.productDetails.unit_price > selectedPrice[1]) return false;
         return true;
     });
 
     // Sắp xếp
     const sortedProducts = [...filteredProducts].sort((a, b) => {
-        if (sortBy === 'price-asc') return a.partnerPrice - b.partnerPrice;
-        if (sortBy === 'price-desc') return b.partnerPrice - a.partnerPrice;
+        if (sortBy === 'price-asc') return a.productDetails.unit_price - b.productDetails.unit_price;
+        if (sortBy === 'price-desc') return b.productDetails.unit_price - a.productDetails.unit_price;
         return 0;
     });
 
@@ -402,8 +402,8 @@ export default function CustomPage() {
                                             <div className="font-semibold mb-1 text-base">{product.productDetails?.Name}</div>
                                             <div className="text-gray-500 text-xs mb-1">{product.productDetails?.["Color Group"] ? product.productDetails["Color Group"].split(',').length + ' Colors' : ''}</div>
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-bold text-lg text-primary">${product.partnerPrice}</span>
-                                                {product.productDetails?.unit_price && product.productDetails.unit_price > product.partnerPrice && (
+                                                <span className="font-bold text-lg text-primary">${product.productDetails.unit_price}</span>
+                                                {product.productDetails?.unit_price && product.productDetails.unit_price > product.productDetails.unit_price && (
                                                     <span className="text-gray-400 line-through text-sm">${product.productDetails.unit_price}</span>
                                                 )}
                                             </div>

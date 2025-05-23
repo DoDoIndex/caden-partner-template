@@ -18,5 +18,5 @@ export interface Product {
         "Coverage (sqft)": string;
         "Size Advanced": string;
     };
-    partnerPrice: number;
+    productDetails.unit_price: number;
 }

@@ -122,7 +122,7 @@ export default function CardProduct({ product }: CardProductProps) {
                 <div>
                     <div className="flex flex-col items-start justify-between">
                         <div>
-                            <span className="text-lg font-semibold text-primary">${product.partnerPrice}</span>
+                            <span className="text-lg font-semibold text-primary">${product.productDetails.unit_price}</span>
                             <span className="text-sm text-gray-500 ml-2">/ {product.productDetails.UOM}</span>
                         </div>
                         <div className="text-sm text-gray-600">
