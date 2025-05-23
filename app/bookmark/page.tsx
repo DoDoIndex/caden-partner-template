@@ -9,6 +9,32 @@ import toast, { Toaster } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { Trash } from "lucide-react";
 
+// Bảng màu rút gọn cho primary, secondary, accent
+const primaryColors = [
+    { name: 'Blue 500', value: '#3B82F6' },
+    { name: 'Slate 600', value: '#475569' },
+    { name: 'Red 500', value: '#EF4444' },
+    { name: 'Green 500', value: '#22C55E' },
+    { name: 'Amber 500', value: '#F59E0B' },
+    { name: 'Purple 500', value: '#8B5CF6' },
+    { name: 'Pink 500', value: '#EC4899' },
+];
+const secondaryColors = [
+    { name: 'Gray 200', value: '#E5E7EB' },
+    { name: 'Slate 200', value: '#E2E8F0' },
+    { name: 'Zinc 200', value: '#E4E4E7' },
+    { name: 'Neutral 200', value: '#E5E5E5' },
+    { name: 'Stone 200', value: '#E7E5E4' },
+];
+const accentColors = [
+    { name: 'Cyan 400', value: '#22D3EE' },
+    { name: 'Teal 400', value: '#2DD4BF' },
+    { name: 'Rose 400', value: '#FB7185' },
+    { name: 'Indigo 400', value: '#818CF8' },
+    { name: 'Yellow 400', value: '#FACC15' },
+    { name: 'Lime 400', value: '#A3E635' },
+];
+
 export default function BookmarkPage() {
     const [activeTab, setActiveTab] = useState("Saved");
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -24,6 +50,11 @@ export default function BookmarkPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 40;
     const router = useRouter();
+    const [showBrandNameModal, setShowBrandNameModal] = useState(false);
+    const [brandName, setBrandName] = useState("");
+    const [primaryColor, setPrimaryColor] = useState(primaryColors[0].value);
+    const [secondaryColor, setSecondaryColor] = useState(secondaryColors[0].value);
+    const [accentColor, setAccentColor] = useState(accentColors[0].value);
 
     useEffect(() => {
         const loadBookmarks = () => {
@@ -196,12 +227,24 @@ export default function BookmarkPage() {
         toast.success('Product removed from collection');
     };
 
-
     const handleGoToDesignPage = () => {
         if (typeof window !== 'undefined') {
             localStorage.setItem('designCollection', JSON.stringify(collections));
         }
         router.push('/design');
+    };
+
+    const handleConfirmBrandName = () => {
+        if (brandName.trim()) {
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('designCollection', JSON.stringify(collections));
+                localStorage.setItem('brandName', brandName);
+                localStorage.setItem('primaryColor', primaryColor);
+                localStorage.setItem('secondaryColor', secondaryColor);
+                localStorage.setItem('accentColor', accentColor);
+            }
+            router.push('/custom');
+        }
     };
 
     const savedContent = (
@@ -447,10 +490,10 @@ export default function BookmarkPage() {
             {/* Design Page Button */}
             <button
                 className="fixed right-4 sm:right-8 bottom-4 sm:bottom-8 px-4 sm:px-6 py-2 sm:py-3 bg-primary text-white rounded-full shadow-lg hover:bg-primary/90 transition-colors z-50 text-sm sm:text-base"
-                onClick={handleGoToDesignPage}
+                onClick={() => setShowBrandNameModal(true)}
                 disabled={collections.length === 0}
             >
-                Design Page
+                Custom Page
             </button>
         </div>
     );
@@ -519,6 +562,79 @@ export default function BookmarkPage() {
                                 className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                             >
                                 Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Brand Name Modal */}
+            {showBrandNameModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                        <h3 className="text-lg font-semibold mb-4">Create Custom Page</h3>
+                        <input
+                            type="text"
+                            value={brandName}
+                            onChange={(e) => setBrandName(e.target.value)}
+                            placeholder="Enter your brand name"
+                            className="w-full px-3 py-2 border rounded-lg mb-4"
+                        />
+                        <div className="mb-4">
+                            <label className="block font-medium mb-1">Primary Color</label>
+                            <div className="flex gap-2">
+                                {primaryColors.map(color => (
+                                    <button
+                                        key={color.value}
+                                        className={`w-8 h-8 rounded-full border ${primaryColor === color.value ? 'ring-2 ring-primary' : ''}`}
+                                        style={{ backgroundColor: color.value }}
+                                        onClick={() => setPrimaryColor(color.value)}
+                                        title={color.name}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="mb-4">
+                            <label className="block font-medium mb-1">Secondary Color</label>
+                            <div className="flex gap-2">
+                                {secondaryColors.map(color => (
+                                    <button
+                                        key={color.value}
+                                        className={`w-8 h-8 rounded-full border ${secondaryColor === color.value ? 'ring-2 ring-primary' : ''}`}
+                                        style={{ backgroundColor: color.value }}
+                                        onClick={() => setSecondaryColor(color.value)}
+                                        title={color.name}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="mb-4">
+                            <label className="block font-medium mb-1">Accent Color</label>
+                            <div className="flex gap-2">
+                                {accentColors.map(color => (
+                                    <button
+                                        key={color.value}
+                                        className={`w-8 h-8 rounded-full border ${accentColor === color.value ? 'ring-2 ring-primary' : ''}`}
+                                        style={{ backgroundColor: color.value }}
+                                        onClick={() => setAccentColor(color.value)}
+                                        title={color.name}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setShowBrandNameModal(false)}
+                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmBrandName}
+                                disabled={!brandName.trim()}
+                                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
+                            >
+                                Continue
                             </button>
                         </div>
                     </div>
