@@ -65,9 +65,9 @@ export default function HomePage() {
     return [...filteredProducts].sort((a, b) => {
       switch (filters.sort) {
         case 'price_asc':
-          return (a.partnerPrice || a.productDetails?.unit_price || 0) - (b.partnerPrice || b.productDetails?.unit_price || 0);
+          return (a.productDetails.unit_price || a.productDetails?.unit_price || 0) - (b.productDetails.unit_price || b.productDetails?.unit_price || 0);
         case 'price_desc':
-          return (b.partnerPrice || b.productDetails?.unit_price || 0) - (a.partnerPrice || a.productDetails?.unit_price || 0);
+          return (b.productDetails.unit_price || b.productDetails?.unit_price || 0) - (a.productDetails.unit_price || a.productDetails?.unit_price || 0);
         case 'name_asc':
           return (a.productDetails?.Name || '').localeCompare(b.productDetails?.Name || '');
         case 'name_desc':
