@@ -28,53 +28,54 @@ export default function BookmarkPage() {
     useEffect(() => {
         const loadBookmarks = () => {
             try {
-                if (typeof window !== 'undefined') {
-                    const storedBookmarks = localStorage.getItem('bookmarks');
-                    if (storedBookmarks) {
-                        const parsedBookmarks = JSON.parse(storedBookmarks);
-                        if (Array.isArray(parsedBookmarks)) {
-                            // Chuẩn hóa dữ liệu về đúng interface Product
-                            const validBookmarks = parsedBookmarks.map((bookmark: any) => ({
-                                productId: Number(bookmark.productId),
-                                partnerPrice: Number(bookmark.partnerPrice) || Number(bookmark.myUnitPrice) || 0,
-                                productDetails: bookmark.productDetails
-                                    ? {
-                                        ...bookmark.productDetails,
-                                        Images: Array.isArray(bookmark.productDetails.Images)
-                                            ? bookmark.productDetails.Images
-                                            : bookmark.productDetails.Images
-                                                ? [bookmark.productDetails.Images]
-                                                : bookmark.images
-                                                    ? [bookmark.images]
-                                                    : [],
-                                    }
-                                    : {
-                                        Usage: bookmark.usage || "",
-                                        Categories: bookmark.categories || "",
-                                        Trim: bookmark.trim || bookmark.texture || "",
-                                        Size: bookmark.size || "",
-                                        Images: bookmark.images ? (Array.isArray(bookmark.images) ? bookmark.images : [bookmark.images]) : [],
-                                        Color: bookmark.color || "",
-                                        Material: bookmark.material || "",
-                                        unit_price: bookmark.unitPrice || 0,
-                                        Name: bookmark.name || "",
-                                        "Color Group": bookmark.colorGroup || "",
-                                        UOM: bookmark.unitOfMeasurement || "",
-                                        "Photo Hover": bookmark.photoHover || "",
-                                        "Qty per Box": bookmark.quantityPerBox?.toString() || "",
-                                        Collection: bookmark.collection || "",
-                                        "Coverage (sqft)": bookmark.coverage?.toString() || "",
-                                        "Size Advanced": bookmark.sizeAdvance || "",
-                                    }
-                            })) as Product[];
-                            setBookmarks(validBookmarks);
-                        }
+                const storedBookmarks = localStorage.getItem('bookmarks');
+                if (storedBookmarks) {
+                    const parsedBookmarks = JSON.parse(storedBookmarks);
+                    if (Array.isArray(parsedBookmarks)) {
+                        // Normalize data to match Product interface
+                        const validBookmarks = parsedBookmarks.map((bookmark: any) => ({
+                            productId: Number(bookmark.productId),
+                            partnerPrice: Number(bookmark.partnerPrice) || Number(bookmark.myUnitPrice) || 0,
+                            productDetails: bookmark.productDetails
+                                ? {
+                                    ...bookmark.productDetails,
+                                    Images: Array.isArray(bookmark.productDetails.Images)
+                                        ? bookmark.productDetails.Images
+                                        : bookmark.productDetails.Images
+                                            ? [bookmark.productDetails.Images]
+                                            : bookmark.images
+                                                ? [bookmark.images]
+                                                : [],
+                                }
+                                : {
+                                    Usage: bookmark.usage || "",
+                                    Categories: bookmark.categories || "",
+                                    Trim: bookmark.trim || bookmark.texture || "",
+                                    Size: bookmark.size || "",
+                                    Images: bookmark.images ? (Array.isArray(bookmark.images) ? bookmark.images : [bookmark.images]) : [],
+                                    Color: bookmark.color || "",
+                                    Material: bookmark.material || "",
+                                    unit_price: bookmark.unitPrice || 0,
+                                    Name: bookmark.name || "",
+                                    "Color Group": bookmark.colorGroup || "",
+                                    UOM: bookmark.unitOfMeasurement || "",
+                                    "Photo Hover": bookmark.photoHover || "",
+                                    "Qty per Box": bookmark.quantityPerBox?.toString() || "",
+                                    Collection: bookmark.collection || "",
+                                    "Coverage (sqft)": bookmark.coverage?.toString() || "",
+                                    "Size Advanced": bookmark.sizeAdvance || "",
+                                }
+                        })) as Product[];
+                        setBookmarks(validBookmarks);
                     }
                 }
             } catch (error) {
                 console.error('Error loading bookmarks:', error);
             }
         };
+
+        // Only run on client-side
+        if (typeof window === 'undefined') return;
 
         loadBookmarks();
 
@@ -84,23 +85,17 @@ export default function BookmarkPage() {
             }
         };
 
-        if (typeof window !== 'undefined') {
-            window.addEventListener('storage', handleStorageChange);
-        }
-
-        return () => {
-            if (typeof window !== 'undefined') {
-                window.removeEventListener('storage', handleStorageChange);
-            }
-        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const stored = localStorage.getItem('collections');
-            if (stored) {
-                setCollections(JSON.parse(stored));
-            }
+        // Only run on client-side
+        if (typeof window === 'undefined') return;
+
+        const stored = localStorage.getItem('collections');
+        if (stored) {
+            setCollections(JSON.parse(stored));
         }
     }, []);
 
@@ -124,18 +119,14 @@ export default function BookmarkPage() {
         setCollections(updated);
         setNewCollectionName("");
         setSelectedProducts([]);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('collections', JSON.stringify(updated));
-        }
+        localStorage.setItem('collections', JSON.stringify(updated));
     };
 
     const handleUpdatePartnerPrice = (colIdx: number, prodIdx: number, value: number) => {
         setCollections(prev => {
             const updated = [...prev];
             updated[colIdx].products[prodIdx].partnerPrice = value;
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('collections', JSON.stringify(updated));
-            }
+            localStorage.setItem('collections', JSON.stringify(updated));
             return updated;
         });
     };
@@ -146,9 +137,7 @@ export default function BookmarkPage() {
 
     const confirmClearAllBookmarks = () => {
         setBookmarks([]);
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('bookmarks');
-        }
+        localStorage.removeItem('bookmarks');
         toast.success('All bookmarks have been cleared');
         setShowConfirmModal(false);
     };
@@ -162,9 +151,7 @@ export default function BookmarkPage() {
         if (collectionToDelete !== null) {
             setCollections(prev => {
                 const updated = prev.filter((_, idx) => idx !== collectionToDelete);
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('collections', JSON.stringify(updated));
-                }
+                localStorage.setItem('collections', JSON.stringify(updated));
                 return updated;
             });
             toast.success('Collection deleted');
@@ -187,20 +174,14 @@ export default function BookmarkPage() {
                 updated[colIdx] = { ...updated[colIdx], products: updatedProducts };
             }
 
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('collections', JSON.stringify(updated));
-            }
-
+            localStorage.setItem('collections', JSON.stringify(updated));
             return updated;
         });
         toast.success('Product removed from collection');
     };
 
-
     const handleGoToDesignPage = () => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('designCollection', JSON.stringify(collections));
-        }
+        localStorage.setItem('designCollection', JSON.stringify(collections));
         router.push('/design');
     };
 
@@ -314,7 +295,7 @@ export default function BookmarkPage() {
             ) : (
                 <div className="text-center py-12">
                     <p className="text-gray-500">No bookmarks found</p>
-                    </div>
+                </div>
             )}
             {/* Image Preview Modal */}
             {previewImage && (
@@ -408,7 +389,7 @@ export default function BookmarkPage() {
                         </div>
                         <div className="space-y-3">
                             {col.products.map((prod: any, i: number) => (
-                                <div key={prod.productId} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-2 bg-gray-50 rounded">
+                                <div key={`${idx}_${prod.productId || i}`} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-2 bg-gray-50 rounded">
                                     <div className="flex items-center gap-3 flex-1">
                                         {prod.productDetails?.Images && prod.productDetails.Images[0] && (
                                             <Image

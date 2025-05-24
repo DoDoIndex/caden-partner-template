@@ -106,7 +106,7 @@ export default function ListProduct({ product }: ListProductProps) {
                 <p className="mt-2 text-sm text-gray-500">{product.productDetails.Trim}</p>
             </div>
             <div className="flex flex-col items-start sm:items-end w-full sm:w-auto mt-4 sm:mt-0">
-                <div className="text-lg font-semibold text-primary">${product.partnerPrice}</div>
+                <div className="text-lg font-semibold text-primary">${product.productDetails.unit_price}</div>
                 <div className="text-sm text-gray-500">/ {product.productDetails.UOM}</div>
                 <div className="mt-2 text-sm text-gray-600 text-left sm:text-right">
                     <div>Box: {product.productDetails["Qty per Box"]} pcs</div>
