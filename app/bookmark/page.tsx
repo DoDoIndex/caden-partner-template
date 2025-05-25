@@ -644,7 +644,7 @@ export default function BookmarkPage() {
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
                 <div className="bg-white rounded-2xl shadow-sm">
                     <Tabs
-                        tabs={["Saved", "Created"]}
+                        tabs={["Saved", "Collection"]}
                         activeTab={activeTab}
                         onTabClick={setActiveTab}
                     />
