@@ -207,7 +207,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                                     <div className="flex items-center justify-between p-4">
                                         <div>
                                             <p className="text-2xl font-bold text-primary">
-                                                ${product.partnerPrice?.toFixed(2)}
+                                                ${product.productDetails.unit_price?.toFixed(2)}
                                             </p>
                                             {product.productDetails?.UOM && (
                                                 <p className="text-sm text-gray-500">per {product.productDetails.UOM}</p>

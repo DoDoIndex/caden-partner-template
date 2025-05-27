@@ -8,6 +8,34 @@ import ListProduct from "@/app/components/Homepage/list-product";
 import toast, { Toaster } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { Trash } from "lucide-react";
+// @ts-ignore
+import jsPDF from "jspdf";
+
+// Bảng màu rút gọn cho primary, secondary, accent
+const primaryColors = [
+    { name: 'Blue 500', value: '#3B82F6' },
+    { name: 'Slate 600', value: '#475569' },
+    { name: 'Red 500', value: '#EF4444' },
+    { name: 'Green 500', value: '#22C55E' },
+    { name: 'Amber 500', value: '#F59E0B' },
+    { name: 'Purple 500', value: '#8B5CF6' },
+    { name: 'Pink 500', value: '#EC4899' },
+];
+const secondaryColors = [
+    { name: 'Gray 200', value: '#E5E7EB' },
+    { name: 'Slate 200', value: '#E2E8F0' },
+    { name: 'Zinc 200', value: '#E4E4E7' },
+    { name: 'Neutral 200', value: '#E5E5E5' },
+    { name: 'Stone 200', value: '#E7E5E4' },
+];
+const accentColors = [
+    { name: 'Cyan 400', value: '#22D3EE' },
+    { name: 'Teal 400', value: '#2DD4BF' },
+    { name: 'Rose 400', value: '#FB7185' },
+    { name: 'Indigo 400', value: '#818CF8' },
+    { name: 'Yellow 400', value: '#FACC15' },
+    { name: 'Lime 400', value: '#A3E635' },
+];
 
 export default function BookmarkPage() {
     const [activeTab, setActiveTab] = useState("Saved");
@@ -24,6 +52,12 @@ export default function BookmarkPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 40;
     const router = useRouter();
+    const [showBrandNameModal, setShowBrandNameModal] = useState(false);
+    const [brandName, setBrandName] = useState("");
+    const [primaryColor, setPrimaryColor] = useState(primaryColors[0].value);
+    const [secondaryColor, setSecondaryColor] = useState(secondaryColors[0].value);
+    const [accentColor, setAccentColor] = useState(accentColors[0].value);
+    const [isDownloading, setIsDownloading] = useState(false);
 
     useEffect(() => {
         const loadBookmarks = () => {
@@ -112,14 +146,17 @@ export default function BookmarkPage() {
             name: newCollectionName,
             products: selected.map(p => ({
                 ...p,
-                partnerPrice: p.partnerPrice || 0
+                partnerPrice: (p.productDetails.unit_price * 1.3).toFixed(2) || 0
             }))
         };
         const updated = [...collections, newCol];
         setCollections(updated);
         setNewCollectionName("");
         setSelectedProducts([]);
-        localStorage.setItem('collections', JSON.stringify(updated));
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('collections', JSON.stringify(updated));
+        }
+        toast.success('Collection created');
     };
 
     const handleUpdatePartnerPrice = (colIdx: number, prodIdx: number, value: number) => {
@@ -185,6 +222,153 @@ export default function BookmarkPage() {
         router.push('/design');
     };
 
+    const handleConfirmBrandName = () => {
+        if (brandName.trim()) {
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('designCollection', JSON.stringify(collections));
+                localStorage.setItem('brandName', brandName);
+                localStorage.setItem('primaryColor', primaryColor);
+                localStorage.setItem('secondaryColor', secondaryColor);
+                localStorage.setItem('accentColor', accentColor);
+            }
+            router.push('/custom');
+        }
+    };
+
+    // Hàm chuyển ảnh URL sang base64
+    const getImageBase64 = async (url: string): Promise<string | null> => {
+        try {
+            const res = await fetch(url);
+            const blob = await res.blob();
+            return await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch {
+            return null;
+        }
+    };
+
+    const handleExportPDF = async () => {
+        if (!brandName.trim() || collections.length === 0) return;
+        setIsDownloading(true);
+
+        const doc = new jsPDF({ orientation: 'l', unit: 'mm', format: 'a4' });
+
+        const leftMargin = 25;
+        const tableWidth = 260;
+        const colX = {
+            image: leftMargin,
+            name: leftMargin + 35,
+            size: leftMargin + 95,
+            material: leftMargin + 130,
+            color: leftMargin + 170,
+            price: leftMargin + 215
+        };
+        const colWidth = {
+            image: 28,
+            name: 55,
+            size: 32,
+            material: 35,
+            color: 40,
+            price: 30
+        };
+
+        let isFirstPage = true;
+
+        const renderTableHeader = (y: number) => {
+            doc.setFillColor(230, 230, 250);
+            doc.setTextColor(40, 40, 120);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.rect(leftMargin, y, tableWidth, 12, "F");
+
+            doc.text("Image", colX.image + 2, y + 8);
+            doc.text("Name", colX.name + 2, y + 8);
+            doc.text("Size", colX.size + 2, y + 8);
+            doc.text("Material", colX.material + 2, y + 8);
+            doc.text("Color", colX.color + 2, y + 8);
+            doc.text("Price", colX.price + colWidth.price - 2, y + 8, { align: 'right' });
+
+            return y + 18;
+        };
+
+        for (const col of collections) {
+            doc.addPage();
+            let y = 22;
+
+            if (isFirstPage) {
+                // Tên thương hiệu ở đầu trang đầu tiên
+                doc.setFontSize(22);
+                doc.setTextColor(30, 30, 100);
+                doc.setFont('helvetica', 'bold');
+                doc.text(brandName, 148, y, { align: 'center' });
+                doc.setFontSize(12);
+                doc.text(`${new Date().toLocaleDateString()}`, 148, y + 10, { align: 'center' });
+                y += 14;
+                isFirstPage = false;
+            }
+
+            // Tên bộ sưu tập
+            doc.setFontSize(17);
+            doc.setTextColor(40, 40, 120);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`Collection: ${col.name}`, leftMargin, y);
+            y += 10;
+
+            y = renderTableHeader(y);
+
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'normal');
+
+            for (const prod of col.products) {
+                const rowHeight = 32;
+
+                // Auto add page nếu sắp tràn
+                if (y + rowHeight > 200) {
+                    doc.addPage();
+                    y = 22;
+                    y = renderTableHeader(y);
+                }
+
+                let imgY = y - 3;
+
+                // Hình ảnh sản phẩm
+                if (prod.productDetails.Images && prod.productDetails.Images[0]) {
+                    const imgBase64 = await getImageBase64(prod.productDetails.Images[0]);
+                    if (imgBase64) {
+                        try {
+                            doc.addImage(imgBase64, "JPEG", colX.image, imgY, colWidth.image, colWidth.image, undefined, 'FAST');
+                        } catch { }
+                    }
+                }
+
+                // Nội dung văn bản
+                const nameLines = doc.splitTextToSize(String(prod.productDetails.Name || ""), colWidth.name);
+                doc.text(nameLines, colX.name, y + 7);
+                doc.text(String(prod.productDetails.Size || ""), colX.size, y + 7);
+                doc.text(String(prod.productDetails.Material || ""), colX.material, y + 7);
+                doc.text(String(prod.productDetails["Color Group"] || ""), colX.color, y + 7);
+                doc.text(`$${prod.partnerPrice}`, colX.price + colWidth.price - 2, y + 7, { align: 'right' });
+
+                // Kẻ dòng ngăn cách
+                doc.setDrawColor(220, 220, 220);
+                doc.setLineWidth(0.3);
+                doc.line(leftMargin, y + 25, leftMargin + tableWidth, y + 25);
+
+                y += rowHeight;
+            }
+        }
+
+        doc.deletePage(1); // Xoá trang đầu trắng nếu có
+        doc.save(`${brandName}_catalog.pdf`);
+        setShowBrandNameModal(false);
+        setIsDownloading(false);
+    };
+
     const savedContent = (
         <div className="w-full py-4 sm:py-6">
             {/* Header Actions */}
@@ -210,7 +394,7 @@ export default function BookmarkPage() {
                     className="ml-auto text-gray-500 hover:text-red-500 transition-colors"
                     disabled={bookmarks.length === 0}
                 >
-                    Clear All
+                    Delete All
                 </button>
             </div>
             {/* Empty State */}
@@ -335,7 +519,7 @@ export default function BookmarkPage() {
                     />
                     <button
                         onClick={handleCreateCollection}
-                        className="w-full sm:w-auto px-4 py-2 bg-primary text-white rounded-lg"
+                        className="w-full sm:w-auto px-4 py-2 bg-stone-500 hover:bg-stone-800 transition-colors text-white rounded-lg"
                         disabled={!newCollectionName || selectedProducts.length === 0}
                     >
                         Create collection
@@ -344,11 +528,13 @@ export default function BookmarkPage() {
 
                 <div className="space-y-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 max-h-[60vh] overflow-y-auto pr-2">
                     {bookmarks.map(product => (
-                        <div key={product.productId} className="border rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        <div key={product.productId}
+                            onClick={() => handleSelectProduct(product.productId)}
+                            className="border rounded-lg p-4 flex flex-col hover:bg-gray-50 sm:flex-row items-start sm:items-center gap-4">
                             <input
                                 type="checkbox"
                                 checked={selectedProducts.includes(product.productId)}
-                                onChange={() => handleSelectProduct(product.productId)}
+                                onChange={() => { }}
                                 className="mt-1 sm:mt-0"
                             />
                             <div className="flex-1 flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -372,7 +558,16 @@ export default function BookmarkPage() {
             </div>
             {/* Show created collections */}
             <div>
-                <h2 className="text-xl font-bold mb-4">Created collections</h2>
+                <div className="flex items-center bg-gray-100 p-2 rounded-lg justify-between mb-4">
+                    <h2 className="text-xl font-bold">Created collections</h2>
+                    <button
+                        className="px-4 py-2 bg-stone-500 text-white rounded-lg shadow hover:bg-stone-800 transition-colors text-sm"
+                        onClick={() => setShowBrandNameModal(true)}
+                        disabled={collections.length === 0}
+                    >
+                        Export Catalog
+                    </button>
+                </div>
                 {collections.length === 0 && <div className="text-gray-500">No collection yet</div>}
                 {collections.map((col, idx) => (
                     <div key={idx} className="mb-6 border rounded-lg p-4">
@@ -425,14 +620,6 @@ export default function BookmarkPage() {
                     </div>
                 ))}
             </div>
-            {/* Design Page Button */}
-            <button
-                className="fixed right-4 sm:right-8 bottom-4 sm:bottom-8 px-4 sm:px-6 py-2 sm:py-3 bg-primary text-white rounded-full shadow-lg hover:bg-primary/90 transition-colors z-50 text-sm sm:text-base"
-                onClick={handleGoToDesignPage}
-                disabled={collections.length === 0}
-            >
-                Design Page
-            </button>
         </div>
     );
 
@@ -502,6 +689,47 @@ export default function BookmarkPage() {
                                 Delete
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Brand Name Modal */}
+            {showBrandNameModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                        <h3 className="text-lg font-semibold mb-4">Export Catalog PDF</h3>
+                        <input
+                            type="text"
+                            value={brandName}
+                            onChange={(e) => setBrandName(e.target.value)}
+                            placeholder="Enter your brand name"
+                            className="w-full px-3 py-2 border rounded-lg mb-4"
+                        />
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setShowBrandNameModal(false)}
+                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleExportPDF}
+                                disabled={!brandName.trim()}
+                                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
+                            >
+                                Export PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Overlay loading when isDownloading */}
+            {isDownloading && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]">
+                    <div className="bg-white rounded-lg px-8 py-6 shadow-lg text-lg font-semibold flex items-center gap-3">
+                        <svg className="animate-spin h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                        Exporting file PDF...
                     </div>
                 </div>
             )}
