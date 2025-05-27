@@ -186,6 +186,7 @@ export default function ChatInterface() {
         setAskingAboutCollection(false);
     };
 
+    // Handle sending a message to the chat
     const handleSendMessage = async () => {
         if (!inputMessage.trim()) return;
 
