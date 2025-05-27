@@ -1,6 +1,7 @@
 import { API_URL } from '@/app/config/api';
 import { NextResponse } from 'next/server';
 
+// POST request to send a message to the chat
 export async function POST(request: Request) {
     try {
         const body = await request.json();
