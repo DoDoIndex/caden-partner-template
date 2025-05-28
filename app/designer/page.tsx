@@ -40,9 +40,19 @@ export default function DesignerPage() {
     const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            setUploadedFile(file);
             const reader = new FileReader();
-            reader.onload = (ev) => setUploadedImg(ev.target?.result as string);
+            reader.onload = async (ev) => {
+                const dataUrl = ev.target?.result as string;
+                // Resize nếu cần (giữ nguyên logic resize nếu có)
+                setUploadedImg(dataUrl);
+                setUploadedFile(file);
+                // Reset các state liên quan
+                setSelectedTile(null);
+                setPoint(null);
+                setResultImg(null);
+                // Nếu muốn refresh toàn bộ page:
+                // window.location.reload();
+            };
             reader.readAsDataURL(file);
         }
     };
@@ -228,7 +238,7 @@ export default function DesignerPage() {
                 {!uploadedImg && !resultImg && (
                     <div className="text-gray-400 text-xs md:text-base flex items-center gap-3">
                         <Upload size={20} />
-                        Please upload an image to start designing
+                        Please upload an image to start designing, size: 1100px x 800px
                     </div>
                 )}
                 {resultImg && (
