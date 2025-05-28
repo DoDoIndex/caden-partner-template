@@ -35,11 +35,17 @@ export default function ListProduct({ product }: ListProductProps) {
             localStorage.setItem('bookmarks', JSON.stringify(newBookmarks));
             setIsBookmarked(false);
             toast.success('Deleted from bookmark');
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('bookmarks-updated'));
+            }
         } else {
             bookmarks.push(product);
             localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
             setIsBookmarked(true);
             toast.success('Successfully added to bookmark');
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('bookmarks-updated'));
+            }
         }
     };
 

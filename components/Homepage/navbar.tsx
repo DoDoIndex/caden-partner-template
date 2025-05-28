@@ -20,6 +20,7 @@ export default function Navbar() {
                     <ul className="hidden md:flex gap-4 items-center">
                         <Link href="/" className="hover:text-white text-stone-300 text-md font-semibold">Home</Link>
                         <Link href="/bookmark" className="hover:text-white text-md text-stone-300 font-semibold">Bookmark</Link>
+                        <Link href="/designer" className="hover:text-white text-md text-stone-300 font-semibold">Design</Link>
                         <Link href="/about" className="hover:text-white text-md text-stone-300 font-semibold">About</Link>
                     </ul>
 
@@ -37,6 +38,11 @@ export default function Navbar() {
                             <DropdownMenuItem asChild>
                                 <Link href="/bookmark" className="text-stone-300 hover:text-white cursor-pointer">
                                     Bookmark
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href="/designer" className="text-stone-300 hover:text-white cursor-pointer">
+                                    Design
                                 </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
