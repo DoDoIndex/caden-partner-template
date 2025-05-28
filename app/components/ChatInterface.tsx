@@ -51,7 +51,7 @@ interface ChatMessage {
 }
 
 interface Collection {
-    id: string;
+    id?: string;
     name: string;
     products: Product[];
 }
@@ -93,12 +93,25 @@ export default function ChatInterface() {
         try {
             const collections = getCollections();
 
+            // Map products to include partnerPrice if available
+            const mappedProducts = products.map((product: any) => {
+                // Try to get partnerPrice from product or productDetails
+                let partnerPrice = product.partnerPrice;
+                if (!partnerPrice && product.productDetails && product.productDetails.partnerPrice) {
+                    partnerPrice = product.productDetails.partnerPrice;
+                }
+                return {
+                    productId: product.productId,
+                    partnerPrice: partnerPrice ? String(partnerPrice) : undefined,
+                    productDetails: product.productDetails
+                };
+            });
+
             if (isNew) {
-                // Create new collection
-                const newCollection: Collection = {
-                    id: generateId(),
+                // Create new collection with required structure
+                const newCollection = {
                     name: collectionName,
-                    products: products
+                    products: mappedProducts
                 };
                 collections.push(newCollection);
             } else {
@@ -106,8 +119,8 @@ export default function ChatInterface() {
                 const existingCollection = collections.find(c => c.name.toLowerCase() === collectionName.toLowerCase());
                 if (existingCollection) {
                     // Filter out duplicates
-                    const newProducts = products.filter(product =>
-                        !existingCollection.products.some(p => p.productId === product.productId)
+                    const newProducts = mappedProducts.filter(product =>
+                        !existingCollection.products.some((p: any) => p.productId === product.productId)
                     );
                     existingCollection.products.push(...newProducts);
                 } else {
@@ -116,6 +129,7 @@ export default function ChatInterface() {
             }
 
             localStorage.setItem('collections', JSON.stringify(collections));
+            window.dispatchEvent(new Event('collections-updated'));
             return true;
         } catch (error) {
             console.error('Error saving to collection:', error);
@@ -242,6 +256,7 @@ export default function ChatInterface() {
                 // Add new bookmarks
                 const updatedBookmarks = [...existingBookmarks, ...newBookmarks];
                 localStorage.setItem('bookmarks', JSON.stringify(updatedBookmarks));
+                window.dispatchEvent(new Event('bookmarks-updated'));
 
                 // Store bookmarked products for collection handling
                 setLastBookmarkedProducts(newBookmarks);
@@ -330,6 +345,7 @@ export default function ChatInterface() {
             // Add new bookmark
             const updatedBookmarks = [...existingBookmarks, product];
             localStorage.setItem('bookmarks', JSON.stringify(updatedBookmarks));
+            window.dispatchEvent(new Event('bookmarks-updated'));
 
             toast.success('Product added to bookmarks');
         } catch (error) {
