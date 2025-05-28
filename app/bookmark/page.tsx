@@ -535,13 +535,14 @@ export default function BookmarkPage() {
                 <div className="space-y-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 max-h-[60vh] overflow-y-auto pr-2">
                     {bookmarks.map(product => (
                         <div key={product.productId}
-                            onClick={() => router.push(`/product/${product.productId}`)}
-                            className="border rounded-lg p-4 flex flex-row items-center gap-4 hover:bg-gray-50 cursor-pointer">
+                            onClick={() => handleSelectProduct(product.productId)}
+                            className="border rounded-lg p-4 flex flex-row items-center gap-4 hover:bg-gray-50 cursor-pointer transition-all duration-150"
+                        >
                             <input
                                 type="checkbox"
                                 checked={selectedProducts.includes(product.productId)}
                                 onClick={e => e.stopPropagation()}
-                                onChange={() => { }}
+                                onChange={() => handleSelectProduct(product.productId)}
                                 className="mt-0"
                             />
                             <div className="flex-1 flex flex-row items-center gap-3">
