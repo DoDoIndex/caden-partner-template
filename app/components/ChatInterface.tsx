@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { Loader2, Bookmark, BookmarkCheck } from 'lucide-react';
+import ReactModal from 'react-modal';
 
 // Mock data for testing when API is not available
 const MOCK_PRODUCTS = [
@@ -29,17 +30,22 @@ const MOCK_PRODUCTS = [
 interface Product {
     productId: number;
     productDetails: {
-        Material: string;
-        'Color Group': string;
-        Size: string;
         Usage: string;
+        Categories: string;
         Trim: string;
-        'Photo Hover': string;
+        Size: string;
+        Images: string | string[];
+        Color: string;
+        Material: string;
         unit_price: number;
         Name: string;
+        "Color Group": string;
+        UOM: string;
+        "Photo Hover": string;
+        "Qty per Box": string;
         Collection: string;
-        'Coverage (sqft)': string;
-        'Size Advanced': string;
+        "Coverage (sqft)": string;
+        "Size Advanced": string;
     };
 }
 
@@ -50,16 +56,86 @@ interface ChatMessage {
     timestamp: number;
 }
 
+interface Bookmark extends Product {
+    bookmarkedAt: number;
+}
+
 interface Collection {
-    id?: string;
+    id: string;
     name: string;
-    products: Product[];
+    products: Bookmark[];
+    createdAt: number;
+    updatedAt: number;
 }
 
 interface ChatResponse {
     message: string;
     products: Product[];
+    action: string;
+    error?: boolean;
+    askCollection?: boolean;
+    collectionPrompt?: string;
+    collectionName?: string;
+    productName?: string;
+    showCollections?: boolean;
+    showBookmarks?: boolean;
 }
+
+interface SearchCriteria {
+    searchType: "Material" | "Color Group" | "Size" | "Usage" | "Trim";
+    searchValue: string;
+}
+
+interface CombinedSearchBookmarkResponse {
+    action: "search_and_bookmark";
+    criteria: SearchCriteria[];
+    bookmarkResponse: string;
+    askCollection: boolean;
+    collectionPrompt: string;
+}
+
+interface CombinedSearchBookmarkCollectionResponse {
+    action: "search_bookmark_collection";
+    criteria: SearchCriteria[];
+    bookmarkResponse: string;
+    collectionName: string;
+    collectionResponse: string;
+}
+
+type CombinedResponse = CombinedSearchBookmarkResponse | CombinedSearchBookmarkCollectionResponse;
+
+// Update the normalizeProduct function
+const normalizeProduct = (product: any): Product => {
+    // Ensure all required fields are present with default values
+    const normalizedProduct: Product = {
+        productId: product.productId || 0,
+        productDetails: {
+            Usage: product.productDetails?.Usage || '',
+            Categories: product.productDetails?.Categories || '',
+            Trim: product.productDetails?.Trim || '',
+            Size: product.productDetails?.Size || '',
+            Images: product.productDetails?.Images || '',
+            Color: product.productDetails?.Color || '',
+            Material: product.productDetails?.Material || '',
+            unit_price: product.productDetails?.unit_price || 0,
+            Name: product.productDetails?.Name || '',
+            "Color Group": product.productDetails?.["Color Group"] || '',
+            UOM: product.productDetails?.UOM || '',
+            "Photo Hover": product.productDetails?.["Photo Hover"] || '',
+            "Qty per Box": product.productDetails?.["Qty per Box"] || '',
+            Collection: product.productDetails?.Collection || '',
+            "Coverage (sqft)": product.productDetails?.["Coverage (sqft)"] || '',
+            "Size Advanced": product.productDetails?.["Size Advanced"] || ''
+        }
+    };
+
+    // Convert Images to array if it's a string
+    if (typeof normalizedProduct.productDetails.Images === 'string') {
+        normalizedProduct.productDetails.Images = normalizedProduct.productDetails.Images.split('\n').filter(Boolean);
+    }
+
+    return normalizedProduct;
+};
 
 export default function ChatInterface() {
     const [messages, setMessages] = useState<ChatMessage[]>([
@@ -76,8 +152,31 @@ export default function ChatInterface() {
     const [askingAboutCollection, setAskingAboutCollection] = useState(false);
     const [lastBookmarkedProducts, setLastBookmarkedProducts] = useState<Product[]>([]);
     const [collections, setCollections] = useState<Collection[]>([]);
+    const [showCollectionModal, setShowCollectionModal] = useState(false);
+    const [modalCollection, setModalCollection] = useState<Collection | null>(null);
+    const [showChat, setShowChat] = useState(true);
 
     const generateId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    const getBookmarks = (): Bookmark[] => {
+        try {
+            const bookmarksStr = localStorage.getItem('bookmarks');
+            return bookmarksStr ? JSON.parse(bookmarksStr) : [];
+        } catch (error) {
+            console.error('Error getting bookmarks:', error);
+            return [];
+        }
+    };
+
+    const saveBookmarks = (bookmarks: Bookmark[]): void => {
+        try {
+            localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+            window.dispatchEvent(new Event('bookmarks-updated'));
+        } catch (error) {
+            console.error('Error saving bookmarks:', error);
+            throw error;
+        }
+    };
 
     const getCollections = (): Collection[] => {
         try {
@@ -89,50 +188,71 @@ export default function ChatInterface() {
         }
     };
 
-    const saveToCollection = (products: Product[], collectionName: string, isNew: boolean = false) => {
+    const saveCollections = (collections: Collection[]): void => {
+        try {
+            localStorage.setItem('collections', JSON.stringify(collections));
+            window.dispatchEvent(new Event('collections-updated'));
+        } catch (error) {
+            console.error('Error saving collections:', error);
+            throw error;
+        }
+    };
+
+    const addToBookmarks = (products: Product[]): Bookmark[] => {
+        const existingBookmarks = getBookmarks();
+        const newBookmarks: Bookmark[] = [];
+
+        products.forEach(product => {
+            if (!existingBookmarks.some(b => b.productId === product.productId)) {
+                const normalizedProduct = normalizeProduct(product);
+                newBookmarks.push({
+                    ...normalizedProduct,
+                    bookmarkedAt: Date.now()
+                });
+            }
+        });
+
+        if (newBookmarks.length > 0) {
+            const updatedBookmarks = [...existingBookmarks, ...newBookmarks];
+            saveBookmarks(updatedBookmarks);
+        }
+
+        return newBookmarks;
+    };
+
+    const addToCollection = (products: Product[], collectionName: string, isNew: boolean = false): boolean => {
         try {
             const collections = getCollections();
-
-            // Map products to include partnerPrice if available
-            const mappedProducts = products.map((product: any) => {
-                // Try to get partnerPrice from product or productDetails
-                let partnerPrice = product.partnerPrice;
-                if (!partnerPrice && product.productDetails && product.productDetails.partnerPrice) {
-                    partnerPrice = product.productDetails.partnerPrice;
-                }
-                return {
-                    productId: product.productId,
-                    partnerPrice: partnerPrice ? String(partnerPrice) : undefined,
-                    productDetails: product.productDetails
-                };
-            });
+            const now = Date.now();
 
             if (isNew) {
-                // Create new collection with required structure
-                const newCollection = {
+                // Create new collection
+                const newCollection: Collection = {
+                    id: `collection_${now}`,
                     name: collectionName,
-                    products: mappedProducts
+                    products: products.map(p => ({ ...normalizeProduct(p), bookmarkedAt: now })),
+                    createdAt: now,
+                    updatedAt: now
                 };
                 collections.push(newCollection);
             } else {
                 // Add to existing collection
                 const existingCollection = collections.find(c => c.name.toLowerCase() === collectionName.toLowerCase());
                 if (existingCollection) {
-                    // Filter out duplicates
-                    const newProducts = mappedProducts.filter(product =>
-                        !existingCollection.products.some((p: any) => p.productId === product.productId)
+                    const newProducts = products.filter(product =>
+                        !existingCollection.products.some(p => p.productId === product.productId)
                     );
-                    existingCollection.products.push(...newProducts);
+                    existingCollection.products.push(...newProducts.map(p => ({ ...normalizeProduct(p), bookmarkedAt: now })));
+                    existingCollection.updatedAt = now;
                 } else {
-                    throw new Error('Collection not found');
+                    return false;
                 }
             }
 
-            localStorage.setItem('collections', JSON.stringify(collections));
-            window.dispatchEvent(new Event('collections-updated'));
+            saveCollections(collections);
             return true;
         } catch (error) {
-            console.error('Error saving to collection:', error);
+            console.error('Error adding to collection:', error);
             return false;
         }
     };
@@ -158,7 +278,7 @@ export default function ChatInterface() {
         if (newCollectionMatch) {
             // Handle new collection creation
             const collectionName = newCollectionMatch[1].trim();
-            const success = saveToCollection(lastBookmarkedProducts, collectionName, true);
+            const success = addToCollection(lastBookmarkedProducts, collectionName, true);
 
             const assistantMessage: ChatMessage = {
                 id: generateId(),
@@ -176,7 +296,7 @@ export default function ChatInterface() {
             const collectionExists = collections.some(c => c.name.toLowerCase() === collectionName.toLowerCase());
 
             if (collectionExists) {
-                const success = saveToCollection(lastBookmarkedProducts, collectionName);
+                const success = addToCollection(lastBookmarkedProducts, collectionName);
                 const assistantMessage: ChatMessage = {
                     id: generateId(),
                     role: 'assistant',
@@ -200,6 +320,22 @@ export default function ChatInterface() {
         setAskingAboutCollection(false);
     };
 
+    const formatCollectionMessage = (collections: Collection[]): string => {
+        if (collections.length === 0) {
+            return "You don't have any collections yet. You can create one by bookmarking tiles and adding them to a collection.";
+        }
+        // We'll return a placeholder, actual rendering will be handled below
+        return '__SHOW_COLLECTIONS__';
+    };
+
+    const formatBookmarksMessage = (bookmarks: Bookmark[]): string => {
+        if (bookmarks.length === 0) {
+            return "You don't have any bookmarks yet. Start bookmarking your favorite tiles!";
+        }
+        // We'll return a placeholder, actual rendering will be handled below
+        return '__SHOW_BOOKMARKS__';
+    };
+
     // Handle sending a message to the chat
     const handleSendMessage = async () => {
         if (!inputMessage.trim()) return;
@@ -212,78 +348,45 @@ export default function ChatInterface() {
         };
         setMessages(prev => [...prev, userMessage]);
 
+        // Check for collection viewing request
+        if (inputMessage.toLowerCase().match(/show|list|view|see|display.*collection/i)) {
+            const collections = getCollections();
+            const collectionMessage = formatCollectionMessage(collections);
+            const assistantMessage: ChatMessage = {
+                id: generateId(),
+                role: 'assistant',
+                content: collectionMessage,
+                timestamp: Date.now()
+            };
+            setMessages(prev => [...prev, assistantMessage]);
+            setInputMessage('');
+            return;
+        }
+
+        // Check for bookmarks viewing request
+        if (inputMessage.toLowerCase().match(/show|list|view|see|display.*bookmark/i)) {
+            const bookmarks = getBookmarks();
+            const bookmarksMessage = formatBookmarksMessage(bookmarks);
+            const assistantMessage: ChatMessage = {
+                id: generateId(),
+                role: 'assistant',
+                content: bookmarksMessage,
+                timestamp: Date.now()
+            };
+            setMessages(prev => [...prev, assistantMessage]);
+            setInputMessage('');
+            return;
+        }
+
         if (askingAboutCollection) {
             handleCollectionResponse(inputMessage);
             setInputMessage('');
             return;
         }
 
-        // Handle "Add to bookmark" command
-        if (inputMessage.toLowerCase().trim() === "add to bookmark") {
-            if (products.length === 0) {
-                const assistantMessage: ChatMessage = {
-                    id: generateId(),
-                    role: 'assistant',
-                    content: "There are no tiles currently displayed to bookmark.",
-                    timestamp: Date.now()
-                };
-                setMessages(prev => [...prev, assistantMessage]);
-                setInputMessage('');
-                return;
-            }
-
-            try {
-                const existingBookmarksStr = localStorage.getItem('bookmarks');
-                const existingBookmarks = existingBookmarksStr ? JSON.parse(existingBookmarksStr) : [];
-
-                // Filter out products that are already bookmarked
-                const newBookmarks = products.filter(product =>
-                    !existingBookmarks.some((b: Product) => b.productId === product.productId)
-                );
-
-                if (newBookmarks.length === 0) {
-                    const assistantMessage: ChatMessage = {
-                        id: generateId(),
-                        role: 'assistant',
-                        content: "All displayed tiles are already in your bookmarks.",
-                        timestamp: Date.now()
-                    };
-                    setMessages(prev => [...prev, assistantMessage]);
-                    setInputMessage('');
-                    return;
-                }
-
-                // Add new bookmarks
-                const updatedBookmarks = [...existingBookmarks, ...newBookmarks];
-                localStorage.setItem('bookmarks', JSON.stringify(updatedBookmarks));
-                window.dispatchEvent(new Event('bookmarks-updated'));
-
-                // Store bookmarked products for collection handling
-                setLastBookmarkedProducts(newBookmarks);
-                setAskingAboutCollection(true);
-
-                const assistantMessage: ChatMessage = {
-                    id: generateId(),
-                    role: 'assistant',
-                    content: `I've added ${newBookmarks.length} tile${newBookmarks.length === 1 ? '' : 's'} to your bookmarks successfully! Would you like to add these tiles to a collection? You can choose an existing collection or create a new one by typing "new: [collection name]".`,
-                    timestamp: Date.now()
-                };
-
-                setMessages(prev => [...prev, assistantMessage]);
-                toast.success(`${newBookmarks.length} tile${newBookmarks.length === 1 ? '' : 's'} added to bookmarks`);
-                setInputMessage('');
-                return;
-            } catch (error) {
-                console.error('Error adding to bookmarks:', error);
-                toast.error('Failed to add tiles to bookmarks');
-                return;
-            }
-        }
-
         setIsLoading(true);
 
         try {
-            // Try to fetch from the API route
             const response = await fetch('/api/chat/message', {
                 method: 'POST',
                 headers: {
@@ -298,29 +401,105 @@ export default function ChatInterface() {
 
             const data: ChatResponse = await response.json();
 
+            if (data.error) {
+                const errorMessage: ChatMessage = {
+                    id: generateId(),
+                    role: 'assistant',
+                    content: data.message,
+                    timestamp: Date.now()
+                };
+                setMessages(prev => [...prev, errorMessage]);
+                toast.error(data.message);
+                setIsLoading(false);
+                setInputMessage('');
+                return;
+            }
+
+            // Normalize products from API response
+            const normalizedProducts = data.products.map(normalizeProduct);
+            setProducts(normalizedProducts);
+
+            // Handle show collections action from backend
+            if (data.showCollections) {
+                const collections = getCollections();
+                const collectionMessage = formatCollectionMessage(collections);
+                data.message = collectionMessage;
+            }
+
+            // Handle show bookmarks action from backend
+            if (data.showBookmarks) {
+                const bookmarks = getBookmarks();
+                const bookmarksMessage = formatBookmarksMessage(bookmarks);
+                data.message = bookmarksMessage;
+            }
+
             const assistantMessage: ChatMessage = {
                 id: generateId(),
                 role: 'assistant',
                 content: data.message,
                 timestamp: Date.now()
             };
-
             setMessages(prev => [...prev, assistantMessage]);
-            setProducts(data.products);
+
+            // Handle different actions
+            switch (data.action) {
+                case 'search_and_bookmark':
+                    if (data.products.length > 0) {
+                        try {
+                            const newBookmarks = addToBookmarks(data.products);
+                            if (newBookmarks.length > 0) {
+                                setLastBookmarkedProducts(newBookmarks);
+                                setAskingAboutCollection(true);
+                                toast.success(`${newBookmarks.length} tile${newBookmarks.length === 1 ? '' : 's'} added to bookmarks`);
+                            }
+                        } catch (error) {
+                            console.error('Error adding to bookmarks:', error);
+                            toast.error('Failed to add tiles to bookmarks');
+                        }
+                    }
+                    break;
+
+                case 'search_bookmark_collection':
+                    if (data.products.length > 0 && data.collectionName) {
+                        try {
+                            const newBookmarks = addToBookmarks(data.products);
+                            if (newBookmarks.length > 0) {
+                                const success = addToCollection(newBookmarks, data.collectionName, true);
+                                if (success) {
+                                    toast.success(`${newBookmarks.length} tile${newBookmarks.length === 1 ? '' : 's'} added to bookmarks and collection`);
+                                } else {
+                                    toast.error('Failed to add tiles to collection');
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error in combined action:', error);
+                            toast.error('Failed to complete the combined action');
+                        }
+                    }
+                    break;
+
+                case 'bookmark':
+                    if (data.askCollection) {
+                        setAskingAboutCollection(true);
+                    }
+                    break;
+
+                case 'collection':
+                    setAskingAboutCollection(true);
+                    break;
+            }
         } catch (error) {
             console.error('Error sending message:', error);
-
-            // Use mock data when API is not available
             const mockResponse: ChatMessage = {
                 id: generateId(),
                 role: 'assistant',
                 content: `Here are some tiles that match your search for "${inputMessage}". Note: This is mock data as the API is currently unavailable.`,
                 timestamp: Date.now()
             };
-
             setMessages(prev => [...prev, mockResponse]);
-            setProducts(MOCK_PRODUCTS);
-
+            // Normalize mock products
+            const normalizedMockProducts = MOCK_PRODUCTS.map(normalizeProduct);
+            setProducts(normalizedMockProducts);
             toast.error('API is currently unavailable. Showing mock data.');
         }
 
@@ -331,11 +510,10 @@ export default function ChatInterface() {
     const handleBookmark = async (product: Product) => {
         try {
             // Get existing bookmarks from localStorage
-            const existingBookmarksStr = localStorage.getItem('bookmarks');
-            const existingBookmarks = existingBookmarksStr ? JSON.parse(existingBookmarksStr) : [];
+            const existingBookmarks = getBookmarks();
 
             // Check if product is already bookmarked
-            const isAlreadyBookmarked = existingBookmarks.some((b: Product) => b.productId === product.productId);
+            const isAlreadyBookmarked = existingBookmarks.some((b: Bookmark) => b.productId === product.productId);
 
             if (isAlreadyBookmarked) {
                 toast.error('Product is already bookmarked');
@@ -343,15 +521,74 @@ export default function ChatInterface() {
             }
 
             // Add new bookmark
-            const updatedBookmarks = [...existingBookmarks, product];
-            localStorage.setItem('bookmarks', JSON.stringify(updatedBookmarks));
-            window.dispatchEvent(new Event('bookmarks-updated'));
+            const updatedBookmarks = [...existingBookmarks, { ...product, bookmarkedAt: Date.now() }];
+            saveBookmarks(updatedBookmarks);
 
             toast.success('Product added to bookmarks');
         } catch (error) {
             console.error('Error bookmarking product:', error);
             toast.error('Failed to bookmark product');
         }
+    };
+
+    // Helper to render collections with buttons
+    const renderCollectionsList = () => {
+        const collections = getCollections();
+        if (collections.length === 0) {
+            return (
+                <div className="bg-gray-100 rounded-lg p-3 mt-2">You don't have any collections yet. You can create one by bookmarking tiles and adding them to a collection.</div>
+            );
+        }
+        return (
+            <div className="space-y-4 mt-2">
+                {collections.map((collection) => (
+                    <div key={collection.id} className="flex items-center bg-gray-100 rounded-lg p-3">
+                        <div className="flex-1">
+                            <span role="img" aria-label="folder">📁</span> <span className="font-semibold">{collection.name}</span>
+                            <span className="ml-2 text-sm text-gray-600">• {collection.products.length} tile{collection.products.length === 1 ? '' : 's'}</span>
+                            <span className="ml-2 text-xs text-gray-400">• Last updated: {new Date(collection.updatedAt).toLocaleDateString()}</span>
+                        </div>
+                        <button
+                            className="ml-4 px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
+                            onClick={() => {
+                                setModalCollection(collection);
+                                setShowCollectionModal(true);
+                            }}
+                        >
+                            View Images
+                        </button>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
+    // Helper to render bookmarks with style
+    const renderBookmarksList = () => {
+        const bookmarks = getBookmarks();
+        if (bookmarks.length === 0) {
+            return (
+                <div className="bg-gray-100 rounded-lg p-3 mt-2">You don't have any bookmarks yet. Start bookmarking your favorite tiles!</div>
+            );
+        }
+        return (
+            <div className="space-y-4 mt-2">
+                {bookmarks.map((bookmark) => (
+                    <div key={bookmark.productId} className="flex items-center bg-gray-100 rounded-lg p-3">
+                        <span className="mr-3 text-xl">⭐</span>
+                        <div className="flex-1">
+                            <div className="font-semibold">{bookmark.productDetails.Name}</div>
+                            <div className="text-xs text-gray-600">
+                                {bookmark.productDetails.Material} • {bookmark.productDetails["Color Group"]}
+                                {bookmark.bookmarkedAt && (
+                                    <span className="ml-2 text-gray-400">Bookmarked: {new Date(bookmark.bookmarkedAt).toLocaleDateString()}</span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
     };
 
     return (
@@ -364,75 +601,84 @@ export default function ChatInterface() {
 
             {/* Messages and Products */}
             <div className="flex-1 overflow-auto p-4 space-y-4">
-                {messages.map((message, index) => (
-                    <div key={message.id}>
-                        <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[80%] rounded-lg p-3 ${message.role === 'user'
-                                ? 'bg-gray-500 text-white'
-                                : 'bg-gray-100'
-                                }`}>
-                                {message.content}
+                {messages.map((message, index) => {
+                    // Special handling for collection list message
+                    if (message.content === '__SHOW_COLLECTIONS__') {
+                        return <div key={message.id}>{renderCollectionsList()}</div>;
+                    }
+                    // Special handling for bookmarks list message
+                    if (message.content === '__SHOW_BOOKMARKS__') {
+                        return <div key={message.id}>{renderBookmarksList()}</div>;
+                    }
+                    return (
+                        <div key={message.id}>
+                            <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[80%] rounded-lg p-3 ${message.role === 'user'
+                                    ? 'bg-gray-500 text-white'
+                                    : 'bg-gray-100'
+                                    }`}>
+                                    {message.content}
+                                </div>
                             </div>
-                        </div>
-                        {/* Display products after assistant messages */}
-                        {message.role === 'assistant' && index === messages.length - 1 && products.length > 0 && (
-                            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {products.map((product, index) => {
-                                    const isBookmarked = (() => {
-                                        try {
-                                            const existingBookmarksStr = localStorage.getItem('bookmarks');
-                                            const existingBookmarks = existingBookmarksStr ? JSON.parse(existingBookmarksStr) : [];
-                                            return existingBookmarks.some((b: Product) => b.productId === product.productId);
-                                        } catch {
-                                            return false;
-                                        }
-                                    })();
+                            {/* Display products after assistant messages */}
+                            {message.role === 'assistant' && index === messages.length - 1 && products.length > 0 && (
+                                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {products.map((product, index) => {
+                                        const isBookmarked = (() => {
+                                            try {
+                                                const existingBookmarks = getBookmarks();
+                                                return existingBookmarks.some((b: Bookmark) => b.productId === product.productId);
+                                            } catch {
+                                                return false;
+                                            }
+                                        })();
 
-                                    const productKey = `product_${product.productId || index}_${index}`;
+                                        const productKey = `product_${product.productId || index}_${index}`;
 
-                                    return (
-                                        <div
-                                            key={productKey}
-                                            className="border rounded-lg p-3 hover:shadow-lg transition-shadow bg-white relative group"
-                                        >
-                                            <button
-                                                onClick={() => handleBookmark(product)}
-                                                className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur hover:bg-white transition-colors z-10"
+                                        return (
+                                            <div
+                                                key={productKey}
+                                                className="border rounded-lg p-3 hover:shadow-lg transition-shadow bg-white relative group"
                                             >
-                                                {isBookmarked ? (
-                                                    <BookmarkCheck className="h-5 w-5 text-gray-500" />
-                                                ) : (
-                                                    <Bookmark className="h-5 w-5 text-gray-400 group-hover:text-gray-500 transition-colors" />
+                                                <button
+                                                    onClick={() => handleBookmark(product)}
+                                                    className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur hover:bg-white transition-colors z-10"
+                                                >
+                                                    {isBookmarked ? (
+                                                        <BookmarkCheck className="h-5 w-5 text-gray-500" />
+                                                    ) : (
+                                                        <Bookmark className="h-5 w-5 text-gray-400 group-hover:text-gray-500 transition-colors" />
+                                                    )}
+                                                </button>
+                                                {product.productDetails['Photo Hover'] && (
+                                                    <div className="relative w-full aspect-square mb-2">
+                                                        <Image
+                                                            src={product.productDetails['Photo Hover']}
+                                                            alt={product.productDetails.Name}
+                                                            fill
+                                                            className="object-cover rounded"
+                                                        />
+                                                    </div>
                                                 )}
-                                            </button>
-                                            {product.productDetails['Photo Hover'] && (
-                                                <div className="relative w-full aspect-square mb-2">
-                                                    <Image
-                                                        src={product.productDetails['Photo Hover']}
-                                                        alt={product.productDetails.Name}
-                                                        fill
-                                                        className="object-cover rounded"
-                                                    />
-                                                </div>
-                                            )}
-                                            <div className="space-y-1">
-                                                <h3 className="font-semibold text-sm truncate">{product.productDetails.Name}</h3>
-                                                <p className="text-xs text-gray-600">
-                                                    ${product.productDetails.unit_price?.toFixed(2)} per unit
-                                                </p>
-                                                <div className="text-xs text-gray-500">
-                                                    <p>Material: {product.productDetails.Material}</p>
-                                                    <p>Size: {product.productDetails['Size Advanced']}</p>
-                                                    <p>Color: {product.productDetails['Color Group']}</p>
+                                                <div className="space-y-1">
+                                                    <h3 className="font-semibold text-sm truncate">{product.productDetails.Name}</h3>
+                                                    <p className="text-xs text-gray-600">
+                                                        ${product.productDetails.unit_price?.toFixed(2)} per unit
+                                                    </p>
+                                                    <div className="text-xs text-gray-500">
+                                                        <p>Material: {product.productDetails.Material}</p>
+                                                        <p>Size: {product.productDetails['Size Advanced']}</p>
+                                                        <p>Color: {product.productDetails['Color Group']}</p>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                ))}
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
                 {isLoading && (
                     <div className="flex justify-start">
                         <div className="bg-gray-100 rounded-lg p-3 flex items-center gap-2">
@@ -443,8 +689,54 @@ export default function ChatInterface() {
                 )}
             </div>
 
+            {/* Modal for collection images */}
+            <ReactModal
+                isOpen={showCollectionModal}
+                onRequestClose={() => setShowCollectionModal(false)}
+                shouldCloseOnOverlayClick={true}
+                ariaHideApp={false}
+                className="fixed inset-0 flex items-center justify-center z-[9999] bg-transparent"
+                overlayClassName="fixed inset-0 bg-black/60 backdrop-blur-lg z-[9998]"
+            >
+                <div className="bg-white rounded-2xl shadow-lg p-0 max-w-5xl w-full h-[90vh] flex flex-col relative overflow-hidden">
+                    <div className="sticky top-0 z-20 flex items-center justify-between bg-white px-6 pt-6 pb-2 rounded-t-2xl" style={{ marginTop: 0 }}>
+                        <h2 className="text-lg font-semibold">{modalCollection?.name} - Images</h2>
+                        <button
+                            className="text-gray-500 hover:text-gray-700 text-2xl font-bold rounded-full p-1"
+                            onClick={() => setShowCollectionModal(false)}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto px-6 pb-6">
+                        {modalCollection && modalCollection.products.length > 0 ? (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                                {modalCollection.products.map((product, idx) => (
+                                    <div key={product.productId + '_' + idx} className="flex flex-col items-center">
+                                        {product.productDetails['Photo Hover'] ? (
+                                            <Image
+                                                src={product.productDetails['Photo Hover']}
+                                                alt={product.productDetails.Name}
+                                                width={120}
+                                                height={120}
+                                                className="object-cover rounded mb-2"
+                                            />
+                                        ) : (
+                                            <div className="w-[120px] h-[120px] bg-gray-200 flex items-center justify-center rounded mb-2 text-xs text-gray-500">No Image</div>
+                                        )}
+                                        <div className="text-xs text-center">{product.productDetails.Name}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-gray-500">No images in this collection.</div>
+                        )}
+                    </div>
+                </div>
+            </ReactModal>
+
             {/* Input Area */}
-            <div className="p-4 border-t bg-white">
+            <div className="p-4 border-t bg-white rounded-b-2xl">
                 <div className="flex gap-2">
                     <input
                         type="text"
