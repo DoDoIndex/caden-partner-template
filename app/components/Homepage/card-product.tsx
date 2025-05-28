@@ -63,9 +63,10 @@ export default function CardProduct({ product }: CardProductProps) {
 
     return (
         <div
-            className="group relative bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col h-full"
+            className="group relative bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col h-full cursor-pointer"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
+            onClick={handleProductClick}
         >
             {/* Image Container */}
             <div className="relative aspect-square overflow-hidden cursor-pointer" onClick={handleProductClick}>
@@ -78,7 +79,7 @@ export default function CardProduct({ product }: CardProductProps) {
                 )}
 
                 {/* Quick Actions */}
-                <div className={`absolute top-4 right-4 flex flex-col gap-2 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+                <div className="absolute top-4 right-4 flex flex-col gap-2 transition-opacity duration-300 opacity-100 md:opacity-0 md:group-hover:opacity-100">
                     <button
                         onClick={handleBookmark}
                         className="p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"

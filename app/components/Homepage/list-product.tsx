@@ -77,7 +77,7 @@ export default function ListProduct({ product }: ListProductProps) {
                     />
                 )}
                 {/* Quick Actions */}
-                <div className={`absolute top-2 right-2 flex flex-col gap-2 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+                <div className="absolute top-2 right-2 flex flex-col gap-2 transition-opacity duration-300 opacity-100 md:opacity-0 md:group-hover:opacity-100">
                     <button
                         onClick={handleBookmark}
                         className="p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition-colors"

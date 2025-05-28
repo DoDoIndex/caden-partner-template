@@ -8,8 +8,10 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { usePathname } from "next/navigation";
 
 export default function Navbar() {
+    const pathname = usePathname();
     return (
         <section className="bg-stone-900 text-white">
             <div className="container mx-auto px-4">
@@ -18,10 +20,22 @@ export default function Navbar() {
 
                     {/* Desktop Menu */}
                     <ul className="hidden md:flex gap-4 items-center">
-                        <Link href="/" className="hover:text-white text-stone-300 text-md font-semibold">Home</Link>
-                        <Link href="/bookmark" className="hover:text-white text-md text-stone-300 font-semibold">Bookmark</Link>
-                        <Link href="/designer" className="hover:text-white text-md text-stone-300 font-semibold">Design</Link>
-                        <Link href="/about" className="hover:text-white text-md text-stone-300 font-semibold">About</Link>
+                        <Link
+                            href="/"
+                            className={`hover:text-amber-500 text-md font-semibold ${pathname === '/' ? 'text-amber-500' : 'text-stone-300'}`}
+                        >Home</Link>
+                        <Link
+                            href="/bookmark"
+                            className={`hover:text-amber-500 text-md font-semibold ${pathname === '/bookmark' ? 'text-amber-500' : 'text-stone-300'}`}
+                        >Bookmark</Link>
+                        <Link
+                            href="/designer"
+                            className={`hover:text-amber-500 text-md font-semibold ${pathname === '/designer' ? 'text-amber-500' : 'text-stone-300'}`}
+                        >Design</Link>
+                        <Link
+                            href="/about"
+                            className={`hover:text-amber-500 text-md font-semibold ${pathname === '/about' ? 'text-amber-500' : 'text-stone-300'}`}
+                        >About</Link>
                     </ul>
 
                     {/* Mobile Menu Dropdown */}
