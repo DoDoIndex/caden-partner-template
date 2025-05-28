@@ -101,6 +101,8 @@ export default function BookmarkPage() {
                                 }
                         })) as Product[];
                         setBookmarks(validBookmarks);
+                    } else {
+                        setBookmarks([]);
                     }
                 }
             } catch (error) {
@@ -120,7 +122,11 @@ export default function BookmarkPage() {
         };
 
         window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
+        window.addEventListener('bookmarks-updated', loadBookmarks);
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            window.removeEventListener('bookmarks-updated', loadBookmarks);
+        };
     }, []);
 
     useEffect(() => {
