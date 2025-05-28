@@ -617,7 +617,7 @@ export default function BookmarkPage() {
                                 <span>Delete collection</span>
                             </button>
                         </div>
-                        <div className="space-y-3">
+                        <div className="space-y-3 max-h-[360px] overflow-y-auto pr-2">
                             {col.products.map((prod: any, i: number) => {
                                 // Normalize Images field
                                 let images = prod.productDetails?.Images;
