@@ -381,7 +381,7 @@ export default function BookmarkPage() {
             <div className="flex items-center gap-2 mb-6">
                 <button
                     onClick={() => setViewMode("grid")}
-                    className={`p-2 rounded-lg ${viewMode === "grid" ? "bg-primary text-white" : "bg-white text-gray-600"}`}
+                    className={`p-2 rounded-lg border transition-colors ${viewMode === "grid" ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200"}`}
                 >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -389,7 +389,7 @@ export default function BookmarkPage() {
                 </button>
                 <button
                     onClick={() => setViewMode("list")}
-                    className={`p-2 rounded-lg ${viewMode === "list" ? "bg-primary text-white" : "bg-white text-gray-600"}`}
+                    className={`p-2 rounded-lg border transition-colors ${viewMode === "list" ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200"}`}
                 >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -535,15 +535,16 @@ export default function BookmarkPage() {
                 <div className="space-y-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 max-h-[60vh] overflow-y-auto pr-2">
                     {bookmarks.map(product => (
                         <div key={product.productId}
-                            onClick={() => handleSelectProduct(product.productId)}
-                            className="border rounded-lg p-4 flex flex-col hover:bg-gray-50 sm:flex-row items-start sm:items-center gap-4">
+                            onClick={() => router.push(`/product/${product.productId}`)}
+                            className="border rounded-lg p-4 flex flex-row items-center gap-4 hover:bg-gray-50 cursor-pointer">
                             <input
                                 type="checkbox"
                                 checked={selectedProducts.includes(product.productId)}
+                                onClick={e => e.stopPropagation()}
                                 onChange={() => { }}
-                                className="mt-1 sm:mt-0"
+                                className="mt-0"
                             />
-                            <div className="flex-1 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                            <div className="flex-1 flex flex-row items-center gap-3">
                                 {product.productDetails?.Images && product.productDetails.Images[0] && (
                                     <Image
                                         src={product.productDetails.Images[0]}
@@ -565,9 +566,9 @@ export default function BookmarkPage() {
             {/* Show created collections */}
             <div>
                 <div className="flex items-center bg-gray-100 p-2 rounded-lg justify-between mb-4">
-                    <h2 className="text-xl font-bold">Created collections</h2>
+                    <h2 className="font-bold text-base sm:text-xl">Created collections</h2>
                     <button
-                        className="px-4 py-2 bg-stone-500 text-white rounded-lg shadow hover:bg-stone-800 transition-colors text-sm"
+                        className="px-4 py-2 bg-stone-500 text-white rounded-lg shadow hover:bg-stone-800 transition-colors text-sm sm:text-base"
                         onClick={() => setShowBrandNameModal(true)}
                         disabled={collections.length === 0}
                     >
@@ -580,12 +581,12 @@ export default function BookmarkPage() {
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
                             <div className="font-semibold w-full sm:w-auto">{col.name}</div>
                             <button
-                                className="p-2 text-gray-500 hover:text-red-500 transition-colors rounded-full hover:bg-gray-100 sm:rounded-lg sm:bg-gray-200 sm:flex sm:items-center sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs self-end sm:self-auto"
+                                className="p-2 text-gray-500 hover:text-red-500 transition-colors rounded-full hover:bg-gray-100 sm:rounded-lg sm:bg-gray-200 flex items-center gap-2 px-3 py-1.5 text-xs self-end sm:self-auto"
                                 onClick={() => handleDeleteCollection(idx)}
                                 title="Delete collection"
                             >
                                 <Trash size={20} className="sm:w-4 sm:h-4" />
-                                <span className="hidden sm:inline">Delete collection</span>
+                                <span>Delete collection</span>
                             </button>
                         </div>
                         <div className="space-y-3">

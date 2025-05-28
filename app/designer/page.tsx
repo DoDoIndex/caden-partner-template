@@ -93,25 +93,25 @@ export default function DesignerPage() {
     };
 
     return (
-        <div className="flex h-[90vh] bg-gray-100">
+        <div className="flex flex-col md:flex-row h-auto md:h-[90vh] bg-gray-100">
             {/* Sidebar */}
-            <div className="w-full max-w-sm bg-white border-r p-6 flex flex-col gap-6 shadow-sm">
+            <div className="w-full md:max-w-sm bg-white border-r p-3 md:p-6 flex flex-col gap-4 md:gap-6 shadow-sm">
                 {/* Header sidebar */}
                 <div className="mb-5">
-                    <div className="font-bold text-xl tracking-wide pb-2 border-b border-gray-300">Tool-Box</div>
-                    <div className="flex items-center pt-6 justify-start gap-4 flex-nowrap">
+                    <div className="font-bold text-lg md:text-xl tracking-wide pb-2 border-b border-gray-300">Tool-Box</div>
+                    <div className="flex items-center pt-4 md:pt-6 justify-start gap-2 md:gap-4 flex-nowrap">
                         <button
-                            className="flex justify-center items-center gap-1 px-5 py-3 min-w-[140px] rounded-lg text-sm font-medium bg-stone-400 text-white border border-transparent hover:bg-stone-500 transition-colors"
+                            className="flex justify-center items-center gap-1 px-3 py-2 md:px-5 md:py-3 min-w-[100px] md:min-w-[140px] rounded-lg text-xs md:text-sm font-medium bg-stone-400 text-white border border-transparent hover:bg-stone-500 transition-colors"
                             onClick={() => document.getElementById('uploadInput')?.click()}
                         >
-                            <Upload size={18} />
+                            <Upload size={16} className="md:w-5 md:h-5" />
                             Upload Image
                         </button>
                         <button
-                            className={`flex justify-center items-center gap-1 px-5 py-3 min-w-[140px] rounded-lg text-sm font-medium bg-white border-2 border-gray-300 text-gray-700 hover:bg-stone-100 hover:text-primary transition-colors ${maskMode ? 'border-primary text-primary' : ''}`}
+                            className={`flex justify-center items-center gap-1 px-3 py-2 md:px-5 md:py-3 min-w-[100px] md:min-w-[140px] rounded-lg text-xs md:text-sm font-medium bg-white border-2 border-gray-300 text-gray-700 hover:bg-stone-100 hover:text-primary transition-colors ${maskMode ? 'border-primary text-primary' : ''}`}
                             onClick={() => setMaskMode((m) => !m)}
                         >
-                            <MapPin size={18} />
+                            <MapPin size={16} className="md:w-5 md:h-5" />
                             Add Mask
                         </button>
                     </div>
@@ -194,13 +194,13 @@ export default function DesignerPage() {
             </div>
 
             {/* Main content */}
-            <div className="flex-1 flex flex-col items-center justify-center relative px-8 py-12">
+            <div className="flex-1 flex flex-col items-center justify-center relative px-2 py-4 md:px-8 md:py-12">
                 {(!resultImg && uploadedImg) && (
                     <div className="relative mb-8">
                         <img
                             src={uploadedImg}
                             alt="Uploaded"
-                            className="max-w-[800px] max-h-[75vh] border shadow-xl rounded-xl"
+                            className="w-full max-w-[95vw] md:max-w-[800px] h-auto object-contain border shadow-xl rounded-xl"
                             onClick={handleImageClick}
                             style={{ cursor: maskMode ? "crosshair" : "default" }}
                         />
@@ -226,7 +226,7 @@ export default function DesignerPage() {
                     </div>
                 )}
                 {!uploadedImg && !resultImg && (
-                    <div className="text-gray-400 text-lg flex items-center gap-3">
+                    <div className="text-gray-400 text-xs md:text-base flex items-center gap-3">
                         <Upload size={20} />
                         Please upload an image to start designing
                     </div>
@@ -234,9 +234,9 @@ export default function DesignerPage() {
                 {resultImg && (
                     <div className="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-4 mt-4 w-full max-w-[600px] mx-auto">
                         <div className="flex items-center justify-between w-full mb-2">
-                            <div className="font-semibold text-lg text-gray-800 text-left break-words">{selectedTile.name}</div>
+                            <div className="font-semibold text-sm md:text-lg text-gray-800 text-left break-words">{selectedTile.name}</div>
                             <button
-                                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium shadow"
+                                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs md:text-sm font-medium shadow"
                                 onClick={() => {
                                     const a = document.createElement('a');
                                     const safeName = (selectedTile?.name || 'result')
@@ -248,13 +248,13 @@ export default function DesignerPage() {
                                 }}
                             >
                                 <Download size={18} />
-                                Download
+                                <span className="hidden md:inline">Download</span>
                             </button>
                         </div>
                         <img
                             src={resultImg}
                             alt="Result"
-                            className="w-full max-w-full object-contain border rounded-xl shadow-lg"
+                            className="w-full max-w-[95vw] md:max-w-full object-contain border rounded-xl shadow-lg"
                         />
                     </div>
                 )}
