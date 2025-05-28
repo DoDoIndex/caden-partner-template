@@ -119,13 +119,25 @@ export default function BookmarkPage() {
             if (e.key === 'bookmarks') {
                 loadBookmarks();
             }
+            if (e.key === 'collections') {
+                loadCollections();
+            }
+        };
+
+        const loadCollections = () => {
+            const stored = localStorage.getItem('collections');
+            if (stored) {
+                setCollections(JSON.parse(stored));
+            }
         };
 
         window.addEventListener('storage', handleStorageChange);
         window.addEventListener('bookmarks-updated', loadBookmarks);
+        window.addEventListener('collections-updated', loadCollections);
         return () => {
             window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener('bookmarks-updated', loadBookmarks);
+            window.removeEventListener('collections-updated', loadCollections);
         };
     }, []);
 
@@ -156,12 +168,9 @@ export default function BookmarkPage() {
             }))
         };
         const updated = [...collections, newCol];
-        setCollections(updated);
+        updateCollections(updated);
         setNewCollectionName("");
         setSelectedProducts([]);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('collections', JSON.stringify(updated));
-        }
         toast.success('Collection created');
     };
 
@@ -169,7 +178,10 @@ export default function BookmarkPage() {
         setCollections(prev => {
             const updated = [...prev];
             updated[colIdx].products[prodIdx].partnerPrice = value;
-            localStorage.setItem('collections', JSON.stringify(updated));
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('collections', JSON.stringify(updated));
+                window.dispatchEvent(new Event('collections-updated'));
+            }
             return updated;
         });
     };
@@ -194,7 +206,10 @@ export default function BookmarkPage() {
         if (collectionToDelete !== null) {
             setCollections(prev => {
                 const updated = prev.filter((_, idx) => idx !== collectionToDelete);
-                localStorage.setItem('collections', JSON.stringify(updated));
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('collections', JSON.stringify(updated));
+                    window.dispatchEvent(new Event('collections-updated'));
+                }
                 return updated;
             });
             toast.success('Collection deleted');
@@ -217,7 +232,10 @@ export default function BookmarkPage() {
                 updated[colIdx] = { ...updated[colIdx], products: updatedProducts };
             }
 
-            localStorage.setItem('collections', JSON.stringify(updated));
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('collections', JSON.stringify(updated));
+                window.dispatchEvent(new Event('collections-updated'));
+            }
             return updated;
         });
         toast.success('Product removed from collection');
@@ -373,6 +391,15 @@ export default function BookmarkPage() {
         doc.save(`${brandName}_catalog.pdf`);
         setShowBrandNameModal(false);
         setIsDownloading(false);
+    };
+
+    // When updating collections in localStorage, dispatch a custom event
+    const updateCollections = (updated: any[]) => {
+        setCollections(updated);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('collections', JSON.stringify(updated));
+            window.dispatchEvent(new Event('collections-updated'));
+        }
     };
 
     const savedContent = (
@@ -591,39 +618,54 @@ export default function BookmarkPage() {
                             </button>
                         </div>
                         <div className="space-y-3">
-                            {col.products.map((prod: any, i: number) => (
-                                <div key={`${idx}_${prod.productId || i}`} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-2 bg-gray-50 rounded">
-                                    <div className="flex items-center gap-3 flex-1">
-                                        {prod.productDetails?.Images && prod.productDetails.Images[0] && (
-                                            <Image
-                                                src={prod.productDetails.Images[0]}
-                                                alt={prod.productDetails?.Name || 'Product'}
-                                                width={40}
-                                                height={40}
-                                                className="rounded object-cover"
+                            {col.products.map((prod: any, i: number) => {
+                                // Normalize Images field
+                                let images = prod.productDetails?.Images;
+                                if (typeof images === 'string') {
+                                    images = images.split('\n').filter(Boolean);
+                                }
+                                const firstImage = Array.isArray(images) && images.length > 0 ? images[0].split('\n')[0] : null;
+                                // Get price: use partnerPrice if available, else fallback to unit_price
+                                const price = prod.partnerPrice !== undefined && prod.partnerPrice !== null && prod.partnerPrice !== ''
+                                    ? prod.partnerPrice
+                                    : prod.productDetails?.unit_price || '';
+                                return (
+                                    <div key={`${idx}_${prod.productId || i}`} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-2 bg-gray-50 rounded">
+                                        <div className="flex items-center gap-3 flex-1">
+                                            {firstImage && (
+                                                <Image
+                                                    src={firstImage}
+                                                    alt={prod.productDetails?.Name || 'Product'}
+                                                    width={48}
+                                                    height={48}
+                                                    className="rounded object-cover"
+                                                />
+                                            )}
+                                            <div>
+                                                <div className="font-semibold">{prod.productDetails?.Name}</div>
+                                                <div className="text-xs text-gray-500">{prod.productDetails?.Collection}</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                                            <input
+                                                type="number"
+                                                value={price}
+                                                min={0}
+                                                step={0.01}
+                                                className="w-full sm:w-24 px-2 py-1 border rounded"
+                                                onChange={e => handleUpdatePartnerPrice(idx, i, Number(e.target.value))}
                                             />
-                                        )}
-                                        <span className="flex-1">{prod.productDetails?.Name}</span>
+                                            <span className="text-xs text-gray-500">USD</span>
+                                            <button
+                                                className="p-1 text-xs hover:bg-gray-200 rounded"
+                                                onClick={() => handleDeleteProductInCollection(idx, i)}
+                                            >
+                                                <Trash size={16} />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                                        <input
-                                            type="number"
-                                            value={prod.partnerPrice}
-                                            min={0}
-                                            step={0.01}
-                                            className="w-full sm:w-24 px-2 py-1 border rounded"
-                                            onChange={e => handleUpdatePartnerPrice(idx, i, Number(e.target.value))}
-                                        />
-                                        <span className="text-xs text-gray-500">USD</span>
-                                        <button
-                                            className="p-1 text-xs hover:bg-gray-200 rounded"
-                                            onClick={() => handleDeleteProductInCollection(idx, i)}
-                                        >
-                                            <Trash size={16} />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 ))}
