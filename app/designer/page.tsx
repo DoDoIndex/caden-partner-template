@@ -182,7 +182,7 @@ export default function DesignerPage() {
                     </button>
                 </div>
 
-                <div className="mt-2 space-y-2 text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">
+                <div className="mt-2 space-y-2 text-xs text-gray-600 bg-gray-100 p-3 rounded-lg">
                     <div className="flex items-center gap-2">
                         <ImageIcon size={14} />
                         <span>Uploaded image:</span>
