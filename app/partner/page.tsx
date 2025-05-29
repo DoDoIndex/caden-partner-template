@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 
 const benefits = [
     {
@@ -42,17 +43,48 @@ const steps = [
 
 export default function PartnerPage() {
     const [formData, setFormData] = useState({
-        name: '',
+        fullName: '',
         email: '',
-        phone: '',
-        company: '',
+        phoneNumber: '',
+        companyName: '',
         message: ''
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Handle form submission here
-        console.log(formData);
+        setIsSubmitting(true);
+
+        try {
+            const response = await fetch('/api/partner-registration', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to submit registration');
+            }
+
+            toast.success('Registration submitted successfully!');
+            // Reset form
+            setFormData({
+                fullName: '',
+                email: '',
+                phoneNumber: '',
+                companyName: '',
+                message: ''
+            });
+        } catch (error) {
+            console.error('Error submitting form:', error);
+            toast.error(error instanceof Error ? error.message : 'Failed to submit registration');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -130,8 +162,8 @@ export default function PartnerPage() {
                                     <input
                                         type="text"
                                         className="w-full px-4 py-2 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-white"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        value={formData.fullName}
+                                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                                         required
                                     />
                                 </div>
@@ -156,8 +188,8 @@ export default function PartnerPage() {
                                     <input
                                         type="tel"
                                         className="w-full px-4 py-2 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-white"
-                                        value={formData.phone}
-                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                        value={formData.phoneNumber}
+                                        onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                                         required
                                     />
                                 </div>
@@ -168,8 +200,8 @@ export default function PartnerPage() {
                                     <input
                                         type="text"
                                         className="w-full px-4 py-2 border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-white"
-                                        value={formData.company}
-                                        onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                                        value={formData.companyName}
+                                        onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                                         required
                                     />
                                 </div>
@@ -186,9 +218,11 @@ export default function PartnerPage() {
                             </div>
                             <button
                                 type="submit"
-                                className="w-full bg-amber-500 text-white py-3 rounded-lg font-semibold hover:bg-amber-500 transition-colors"
+                                disabled={isSubmitting}
+                                className={`w-full bg-amber-500 text-white py-3 rounded-lg font-semibold transition-colors ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-amber-600'
+                                    }`}
                             >
-                                Submit Registration
+                                {isSubmitting ? 'Submitting...' : 'Submit Registration'}
                             </button>
                         </form>
                     </div>
