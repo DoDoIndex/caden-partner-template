@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
-import { Loader2, Bookmark, BookmarkCheck } from 'lucide-react';
+import { Loader2, Bookmark, BookmarkCheck, Eye } from 'lucide-react';
 import ReactModal from 'react-modal';
 
 // Mock data for testing when API is not available
@@ -139,6 +139,7 @@ const normalizeProduct = (product: any): Product => {
 };
 
 export default function ChatInterface() {
+    const messagesEndRef = useRef<HTMLDivElement>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([
         {
             id: 'welcome',
@@ -552,13 +553,13 @@ export default function ChatInterface() {
                             <span className="ml-2 text-xs text-gray-400">• Last updated: {new Date(collection.updatedAt).toLocaleDateString()}</span>
                         </div>
                         <button
-                            className="ml-4 px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
+                            className="ml-4 p-2 rounded-md hover:bg-gray-200"
                             onClick={() => {
                                 setModalCollection(collection);
                                 setShowCollectionModal(true);
                             }}
                         >
-                            View Images
+                            <Eye />
                         </button>
                     </div>
                 ))}
@@ -614,6 +615,14 @@ export default function ChatInterface() {
     useEffect(() => {
         localStorage.removeItem('chat_history');
     }, []);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
 
     if (typeof window !== 'undefined') {
         localStorage.removeItem('chat_history');
@@ -709,10 +718,16 @@ export default function ChatInterface() {
                     <div className="flex justify-start">
                         <div className="bg-gray-100 rounded-lg p-3 flex items-center gap-2">
                             <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
-                            <span>Thinking...</span>
+                            <span className="thinking-text">
+                                <span className="thinking-word">Thinking</span>
+                                <span className="dot-1">.</span>
+                                <span className="dot-2">.</span>
+                                <span className="dot-3">.</span>
+                            </span>
                         </div>
                     </div>
                 )}
+                <div ref={messagesEndRef} />
             </div>
 
             {/* Modal for collection images */}
@@ -781,6 +796,44 @@ export default function ChatInterface() {
                     </button>
                 </div>
             </div>
+
+            {/* Thêm style cho animation ở cuối file, trước thẻ đóng cuối cùng */}
+            <style jsx>{`
+                .thinking-text {
+                    position: relative;
+                    display: inline-flex;
+                    align-items: center;
+                }
+                .thinking-word {
+                    background: linear-gradient(90deg, #4a5568, #718096, #4a5568);
+                    background-size: 200% auto;
+                    background-clip: text;
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    animation: shine 3s linear infinite;
+                    font-weight: 500;
+                }
+                .dot-1, .dot-2, .dot-3 {
+                    opacity: 0;
+                    animation: thinking 1.4s infinite;
+                    margin-left: 1px;
+                }
+                .dot-2 {
+                    animation-delay: 0.2s;
+                }
+                .dot-3 {
+                    animation-delay: 0.4s;
+                }
+                @keyframes thinking {
+                    0% { opacity: 0; transform: translateY(0); }
+                    20% { opacity: 1; transform: translateY(-2px); }
+                    100% { opacity: 0; transform: translateY(0); }
+                }
+                @keyframes shine {
+                    0% { background-position: 0% center; }
+                    100% { background-position: 200% center; }
+                }
+            `}</style>
         </div>
     );
 } 

@@ -20,7 +20,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
     const [product, setProduct] = useState<Product | null>(null);
     const [isBookmarked, setIsBookmarked] = useState(false);
     const [selectedImage, setSelectedImage] = useState<string>('');
-    const [quantity, setQuantity] = useState(1);
+    // const [quantity, setQuantity] = useState(1);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -205,7 +205,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                                         </p>
                                     </div>
                                     <div className="flex items-center justify-between p-4">
-                                        <div>
+                                        <div className='flex items-center gap-2'>
                                             <p className="text-2xl font-bold text-primary">
                                                 ${product.productDetails.unit_price?.toFixed(2)}
                                             </p>
