@@ -45,7 +45,7 @@ const colors = [
     { name: "Purple", value: "purple", bgColor: "bg-purple-300" },
     { name: "Pink", value: "pink", bgColor: "bg-pink-300" },
     { name: "Brown", value: "brown", bgColor: "bg-rose-900" },
-    { name: "Grey", value: "grey", bgColor: "bg-gray-500" },
+    { name: "Gray", value: "gray", bgColor: "bg-gray-500" },
     { name: "Black", value: "black", bgColor: "bg-black" },
     { name: "White", value: "white", bgColor: "bg-gray-50" },
 ];

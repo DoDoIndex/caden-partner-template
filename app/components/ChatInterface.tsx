@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
-import { Loader2, Bookmark, BookmarkCheck } from 'lucide-react';
+import { Loader2, Bookmark, BookmarkCheck, Eye } from 'lucide-react';
 import ReactModal from 'react-modal';
 
 // Mock data for testing when API is not available
@@ -54,6 +54,7 @@ interface ChatMessage {
     role: 'user' | 'assistant';
     content: string;
     timestamp: number;
+    products?: Product[];
 }
 
 interface Bookmark extends Product {
@@ -138,6 +139,7 @@ const normalizeProduct = (product: any): Product => {
 };
 
 export default function ChatInterface() {
+    const messagesEndRef = useRef<HTMLDivElement>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([
         {
             id: 'welcome',
@@ -155,6 +157,7 @@ export default function ChatInterface() {
     const [showCollectionModal, setShowCollectionModal] = useState(false);
     const [modalCollection, setModalCollection] = useState<Collection | null>(null);
     const [showChat, setShowChat] = useState(true);
+    const [bookmarksUpdated, setBookmarksUpdated] = useState(0);
 
     const generateId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -266,6 +269,13 @@ export default function ChatInterface() {
         if (collections.length > 0) {
             setCollections(collections);
         }
+    }, []);
+
+    // Lắng nghe sự kiện cập nhật bookmark
+    useEffect(() => {
+        const handleBookmarksUpdated = () => setBookmarksUpdated(prev => prev + 1);
+        window.addEventListener('bookmarks-updated', handleBookmarksUpdated);
+        return () => window.removeEventListener('bookmarks-updated', handleBookmarksUpdated);
     }, []);
 
     const handleCollectionResponse = (input: string) => {
@@ -417,7 +427,6 @@ export default function ChatInterface() {
 
             // Normalize products from API response
             const normalizedProducts = data.products.map(normalizeProduct);
-            setProducts(normalizedProducts);
 
             // Handle show collections action from backend
             if (data.showCollections) {
@@ -437,7 +446,8 @@ export default function ChatInterface() {
                 id: generateId(),
                 role: 'assistant',
                 content: data.message,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                products: normalizedProducts.length > 0 ? normalizedProducts : undefined
             };
             setMessages(prev => [...prev, assistantMessage]);
 
@@ -494,12 +504,10 @@ export default function ChatInterface() {
                 id: generateId(),
                 role: 'assistant',
                 content: `Here are some tiles that match your search for "${inputMessage}". Note: This is mock data as the API is currently unavailable.`,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                products: MOCK_PRODUCTS.map(normalizeProduct)
             };
             setMessages(prev => [...prev, mockResponse]);
-            // Normalize mock products
-            const normalizedMockProducts = MOCK_PRODUCTS.map(normalizeProduct);
-            setProducts(normalizedMockProducts);
             toast.error('API is currently unavailable. Showing mock data.');
         }
 
@@ -507,27 +515,23 @@ export default function ChatInterface() {
         setInputMessage('');
     };
 
-    const handleBookmark = async (product: Product) => {
+    const handleBookmark = (product: Product) => {
         try {
-            // Get existing bookmarks from localStorage
             const existingBookmarks = getBookmarks();
-
-            // Check if product is already bookmarked
             const isAlreadyBookmarked = existingBookmarks.some((b: Bookmark) => b.productId === product.productId);
-
+            let updatedBookmarks;
             if (isAlreadyBookmarked) {
-                toast.error('Product is already bookmarked');
-                return;
+                updatedBookmarks = existingBookmarks.filter((b: Bookmark) => b.productId !== product.productId);
+                saveBookmarks(updatedBookmarks);
+                toast.success('Deleted from bookmarks');
+            } else {
+                updatedBookmarks = [...existingBookmarks, { ...product, bookmarkedAt: Date.now() }];
+                saveBookmarks(updatedBookmarks);
+                toast.success('Added to bookmarks');
             }
-
-            // Add new bookmark
-            const updatedBookmarks = [...existingBookmarks, { ...product, bookmarkedAt: Date.now() }];
-            saveBookmarks(updatedBookmarks);
-
-            toast.success('Product added to bookmarks');
         } catch (error) {
             console.error('Error bookmarking product:', error);
-            toast.error('Failed to bookmark product');
+            toast.error('Bookmark action failed');
         }
     };
 
@@ -542,20 +546,20 @@ export default function ChatInterface() {
         return (
             <div className="space-y-4 mt-2">
                 {collections.map((collection) => (
-                    <div key={collection.id} className="flex items-center bg-gray-100 rounded-lg p-3">
+                    <div key={collection.id || collection.name} className="flex items-center bg-gray-100 rounded-lg p-3">
                         <div className="flex-1">
                             <span role="img" aria-label="folder">📁</span> <span className="font-semibold">{collection.name}</span>
                             <span className="ml-2 text-sm text-gray-600">• {collection.products.length} tile{collection.products.length === 1 ? '' : 's'}</span>
                             <span className="ml-2 text-xs text-gray-400">• Last updated: {new Date(collection.updatedAt).toLocaleDateString()}</span>
                         </div>
                         <button
-                            className="ml-4 px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
+                            className="ml-4 p-2 rounded-md hover:bg-gray-200"
                             onClick={() => {
                                 setModalCollection(collection);
                                 setShowCollectionModal(true);
                             }}
                         >
-                            View Images
+                            <Eye />
                         </button>
                     </div>
                 ))}
@@ -573,8 +577,8 @@ export default function ChatInterface() {
         }
         return (
             <div className="space-y-4 mt-2">
-                {bookmarks.map((bookmark) => (
-                    <div key={bookmark.productId} className="flex items-center bg-gray-100 rounded-lg p-3">
+                {bookmarks.map((bookmark, idx) => (
+                    <div key={bookmark.productId || idx} className="flex items-center bg-gray-100 rounded-lg p-3">
                         <span className="mr-3 text-xl">⭐</span>
                         <div className="flex-1">
                             <div className="font-semibold">{bookmark.productDetails.Name}</div>
@@ -590,6 +594,39 @@ export default function ChatInterface() {
             </div>
         );
     };
+
+    // Khi khởi tạo, load lịch sử từ localStorage nếu có
+    useEffect(() => {
+        const stored = localStorage.getItem('chat_history');
+        if (stored) {
+            try {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed)) setMessages(parsed);
+            } catch { }
+        }
+    }, []);
+
+    // Lưu lại mỗi khi messages thay đổi
+    useEffect(() => {
+        localStorage.setItem('chat_history', JSON.stringify(messages));
+    }, [messages]);
+
+    // Xóa lịch sử chat khi reload trang
+    useEffect(() => {
+        localStorage.removeItem('chat_history');
+    }, []);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem('chat_history');
+    }
 
     return (
         <div className="flex flex-col h-full">
@@ -620,10 +657,10 @@ export default function ChatInterface() {
                                     {message.content}
                                 </div>
                             </div>
-                            {/* Display products after assistant messages */}
-                            {message.role === 'assistant' && index === messages.length - 1 && products.length > 0 && (
+                            {/* Nếu message có products thì render UI sản phẩm */}
+                            {message.role === 'assistant' && message.products && message.products.length > 0 && (
                                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {products.map((product, index) => {
+                                    {message.products.map((product, idx) => {
                                         const isBookmarked = (() => {
                                             try {
                                                 const existingBookmarks = getBookmarks();
@@ -632,9 +669,7 @@ export default function ChatInterface() {
                                                 return false;
                                             }
                                         })();
-
-                                        const productKey = `product_${product.productId || index}_${index}`;
-
+                                        const productKey = `product_${product.productId || idx}_${idx}`;
                                         return (
                                             <div
                                                 key={productKey}
@@ -642,12 +677,12 @@ export default function ChatInterface() {
                                             >
                                                 <button
                                                     onClick={() => handleBookmark(product)}
-                                                    className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur hover:bg-white transition-colors z-10"
+                                                    className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md transition-colors z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:bg-gray-100"
                                                 >
                                                     {isBookmarked ? (
-                                                        <BookmarkCheck className="h-5 w-5 text-gray-500" />
+                                                        <BookmarkCheck size={18} className="text-amber-600 fill-current transition-colors" />
                                                     ) : (
-                                                        <Bookmark className="h-5 w-5 text-gray-400 group-hover:text-gray-500 transition-colors" />
+                                                            <Bookmark size={18} className="text-gray-400 group-hover:text-primary transition-colors" />
                                                     )}
                                                 </button>
                                                 {product.productDetails['Photo Hover'] && (
@@ -683,10 +718,16 @@ export default function ChatInterface() {
                     <div className="flex justify-start">
                         <div className="bg-gray-100 rounded-lg p-3 flex items-center gap-2">
                             <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
-                            <span>Thinking...</span>
+                            <span className="thinking-text">
+                                <span className="thinking-word">Thinking</span>
+                                <span className="dot-1">.</span>
+                                <span className="dot-2">.</span>
+                                <span className="dot-3">.</span>
+                            </span>
                         </div>
                     </div>
                 )}
+                <div ref={messagesEndRef} />
             </div>
 
             {/* Modal for collection images */}
@@ -712,7 +753,7 @@ export default function ChatInterface() {
                         {modalCollection && modalCollection.products.length > 0 ? (
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                                 {modalCollection.products.map((product, idx) => (
-                                    <div key={product.productId + '_' + idx} className="flex flex-col items-center">
+                                    <div key={product.productId ? `${product.productId}_${idx}` : idx} className="flex flex-col items-center">
                                         {product.productDetails['Photo Hover'] ? (
                                             <Image
                                                 src={product.productDetails['Photo Hover']}
@@ -755,6 +796,44 @@ export default function ChatInterface() {
                     </button>
                 </div>
             </div>
+
+            {/* Thêm style cho animation ở cuối file, trước thẻ đóng cuối cùng */}
+            <style jsx>{`
+                .thinking-text {
+                    position: relative;
+                    display: inline-flex;
+                    align-items: center;
+                }
+                .thinking-word {
+                    background: linear-gradient(90deg, #4a5568, #718096, #4a5568);
+                    background-size: 200% auto;
+                    background-clip: text;
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    animation: shine 3s linear infinite;
+                    font-weight: 500;
+                }
+                .dot-1, .dot-2, .dot-3 {
+                    opacity: 0;
+                    animation: thinking 1.4s infinite;
+                    margin-left: 1px;
+                }
+                .dot-2 {
+                    animation-delay: 0.2s;
+                }
+                .dot-3 {
+                    animation-delay: 0.4s;
+                }
+                @keyframes thinking {
+                    0% { opacity: 0; transform: translateY(0); }
+                    20% { opacity: 1; transform: translateY(-2px); }
+                    100% { opacity: 0; transform: translateY(0); }
+                }
+                @keyframes shine {
+                    0% { background-position: 0% center; }
+                    100% { background-position: 200% center; }
+                }
+            `}</style>
         </div>
     );
 } 
