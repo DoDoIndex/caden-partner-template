@@ -98,6 +98,7 @@ export default function HomePage() {
 
   return (
     <>
+      <img src="https://drive.google.com/drive/u/0/folders/1j5pnpbtXR27Ly4URA3OYCq4pJxp_f-_c" alt="" />
       {/* Banner Section - Full Width */}
       <div className="w-full">
         <Banner />

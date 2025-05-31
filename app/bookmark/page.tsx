@@ -361,8 +361,9 @@ export default function BookmarkPage() {
                 let imgY = y - 3;
 
                 // Hình ảnh sản phẩm
-                if (prod.productDetails.Images && prod.productDetails.Images[0]) {
-                    const imgBase64 = await getImageBase64(prod.productDetails.Images[0]);
+                const imgUrl = getProductImage(prod.productDetails);
+                if (imgUrl) {
+                    const imgBase64 = await getImageBase64(imgUrl);
                     if (imgBase64) {
                         try {
                             doc.addImage(imgBase64, "JPEG", colX.image, imgY, colWidth.image, colWidth.image, undefined, 'FAST');
@@ -573,9 +574,9 @@ export default function BookmarkPage() {
                                 className="mt-0"
                             />
                             <div className="flex-1 flex flex-row items-center gap-3">
-                                {product.productDetails?.Images && product.productDetails.Images[0] && (
+                                {product.productDetails && (
                                     <Image
-                                        src={product.productDetails.Images[0]}
+                                        src={getProductImage(product.productDetails)}
                                         alt={product.productDetails?.Name || 'Product'}
                                         width={48}
                                         height={48}
@@ -634,7 +635,7 @@ export default function BookmarkPage() {
                                         <div className="flex items-center gap-3 flex-1">
                                             {firstImage && (
                                                 <Image
-                                                    src={firstImage}
+                                                    src={getProductImage(prod.productDetails)}
                                                     alt={prod.productDetails?.Name || 'Product'}
                                                     width={48}
                                                     height={48}
@@ -786,3 +787,13 @@ export default function BookmarkPage() {
         </main>
     );
 }
+
+const getProductImage = (details: any) => {
+    if (details.Images) {
+        if (Array.isArray(details.Images) && details.Images.length > 0) return details.Images[0];
+        if (typeof details.Images === 'string' && details.Images.trim() !== '') return details.Images;
+    }
+    if ((details as any).Image && (details as any).Image.trim() !== '') return (details as any).Image;
+    if (details["Photo Hover"] && details["Photo Hover"].trim() !== '') return details["Photo Hover"];
+    return '';
+};
