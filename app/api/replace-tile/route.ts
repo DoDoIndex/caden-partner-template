@@ -1,6 +1,8 @@
 import { API_URL } from '@/app/config/api';
 import { NextResponse } from 'next/server';
 
+
+const LOCAL_API_URL = process.env.LOCAL_API_URL || 'http://localhost:8000/api';
 export async function POST(request: Request) {
     try {
         const form = await request.formData();
