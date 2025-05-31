@@ -643,7 +643,7 @@ export default function ChatInterface() {
     }
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full w-full max-w-full min-w-0">
             {/* Header */}
             <div className="p-4 border-b">
                 <h2 className="text-lg font-semibold">AI Tile Assistant</h2>
@@ -664,7 +664,7 @@ export default function ChatInterface() {
                     return (
                         <div key={message.id}>
                             <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[80%] rounded-lg p-3 ${message.role === 'user'
+                                <div className={`max-w-[80%] sm:max-w-[80%] w-full rounded-lg p-3 break-words ${message.role === 'user'
                                     ? 'bg-gray-500 text-white'
                                     : 'bg-gray-100'
                                     }`}>
@@ -673,7 +673,7 @@ export default function ChatInterface() {
                             </div>
                             {/* Nếu message có products thì render UI sản phẩm */}
                             {message.role === 'assistant' && message.products && message.products.length > 0 && (
-                                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                     {message.products.map((product, idx) => {
                                         const isBookmarked = (() => {
                                             try {
@@ -792,14 +792,14 @@ export default function ChatInterface() {
 
             {/* Input Area */}
             <div className="p-4 border-t bg-white rounded-b-2xl">
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full">
                     <input
                         type="text"
                         value={inputMessage}
                         onChange={(e) => setInputMessage(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                         placeholder="Ask about tiles..."
-                        className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 text-sm"
+                        className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 text-sm min-w-0"
                     />
                     <button
                         onClick={handleSendMessage}
@@ -846,6 +846,24 @@ export default function ChatInterface() {
                 @keyframes shine {
                     0% { background-position: 0% center; }
                     100% { background-position: 200% center; }
+                }
+            `}</style>
+
+            {/* Thêm media query cho modal ở cuối file, trước thẻ đóng cuối cùng */}
+            <style jsx global>{`
+                @media (max-width: 600px) {
+                    .ReactModal__Content {
+                        width: 100vw !important;
+                        max-width: 100vw !important;
+                        min-width: 0 !important;
+                        left: 0 !important;
+                        right: 0 !important;
+                        border-radius: 0 !important;
+                        padding: 0 !important;
+                    }
+                    .ReactModal__Overlay {
+                        padding: 0 !important;
+                    }
                 }
             `}</style>
         </div>
