@@ -71,7 +71,7 @@ export default function ListProduct({ product }: ListProductProps) {
             <div className="w-full sm:w-24 h-24 flex-shrink-0 relative overflow-hidden rounded-lg">
                 {product.productDetails.Images && (
                     <img
-                        src={product.productDetails.Images}
+                        src={Array.isArray(product.productDetails.Images) ? product.productDetails.Images[0] : product.productDetails.Images}
                         alt={product.productDetails.Name}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                     />
