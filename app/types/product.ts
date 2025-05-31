@@ -5,7 +5,7 @@ export interface Product {
         Categories: string;
         Trim: string;
         Size: string;
-        Images: string;
+        Images: string | string[];
         Color: string;
         Material: string;
         unit_price: number;

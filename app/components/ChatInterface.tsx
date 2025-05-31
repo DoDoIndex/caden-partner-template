@@ -5,6 +5,7 @@ import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { Loader2, Bookmark, BookmarkCheck, Eye } from 'lucide-react';
 import ReactModal from 'react-modal';
+import { handleChatActions, getBookmarks, getCollections, showCollection } from './Homepage/chat-actions';
 
 // Mock data for testing when API is not available
 const MOCK_PRODUCTS = [
@@ -357,8 +358,31 @@ export default function ChatInterface() {
             timestamp: Date.now()
         };
         setMessages(prev => [...prev, userMessage]);
+        setTimeout(scrollToBottom, 100);
 
         // Check for collection viewing request
+        const showCollectionMatch = inputMessage.match(/show\s+collection\s+(?:named\s+)?['"]?([^'"]+)['"]?/i);
+        if (showCollectionMatch) {
+            const collectionName = showCollectionMatch[1].trim();
+            const { message, products } = showCollection(collectionName);
+
+            const assistantMessage: ChatMessage = {
+                id: generateId(),
+                role: 'assistant',
+                content: message,
+                timestamp: Date.now()
+            };
+            setMessages(prev => [...prev, assistantMessage]);
+
+            if (products.length > 0) {
+                setProducts(products);
+            }
+
+            setInputMessage('');
+            return;
+        }
+
+        // Check for general collection viewing request
         if (inputMessage.toLowerCase().match(/show|list|view|see|display.*collection/i)) {
             const collections = getCollections();
             const collectionMessage = formatCollectionMessage(collections);
@@ -425,8 +449,12 @@ export default function ChatInterface() {
                 return;
             }
 
+            // Handle localStorage operations based on the action
+            handleChatActions(data);
+
             // Normalize products from API response
             const normalizedProducts = data.products.map(normalizeProduct);
+            setProducts(normalizedProducts);
 
             // Handle show collections action from backend
             if (data.showCollections) {
@@ -446,44 +474,23 @@ export default function ChatInterface() {
                 id: generateId(),
                 role: 'assistant',
                 content: data.message,
-                timestamp: Date.now(),
-                products: normalizedProducts.length > 0 ? normalizedProducts : undefined
+                timestamp: Date.now()
             };
             setMessages(prev => [...prev, assistantMessage]);
 
             // Handle different actions
             switch (data.action) {
-                case 'search_and_bookmark':
-                    if (data.products.length > 0) {
-                        try {
-                            const newBookmarks = addToBookmarks(data.products);
-                            if (newBookmarks.length > 0) {
-                                setLastBookmarkedProducts(newBookmarks);
-                                setAskingAboutCollection(true);
-                                toast.success(`${newBookmarks.length} tile${newBookmarks.length === 1 ? '' : 's'} added to bookmarks`);
-                            }
-                        } catch (error) {
-                            console.error('Error adding to bookmarks:', error);
-                            toast.error('Failed to add tiles to bookmarks');
-                        }
+                case 'search':
+                    if (data.products && data.products.length > 0) {
+                        setProducts(data.products.map(normalizeProduct));
                     }
                     break;
-
+                case 'search_and_bookmark':
                 case 'search_bookmark_collection':
-                    if (data.products.length > 0 && data.collectionName) {
-                        try {
-                            const newBookmarks = addToBookmarks(data.products);
-                            if (newBookmarks.length > 0) {
-                                const success = addToCollection(newBookmarks, data.collectionName, true);
-                                if (success) {
-                                    toast.success(`${newBookmarks.length} tile${newBookmarks.length === 1 ? '' : 's'} added to bookmarks and collection`);
-                                } else {
-                                    toast.error('Failed to add tiles to collection');
-                                }
-                            }
-                        } catch (error) {
-                            console.error('Error in combined action:', error);
-                            toast.error('Failed to complete the combined action');
+                    if (data.products.length > 0) {
+                        setLastBookmarkedProducts(data.products);
+                        if (data.askCollection) {
+                            setAskingAboutCollection(true);
                         }
                     }
                     break;
@@ -504,10 +511,12 @@ export default function ChatInterface() {
                 id: generateId(),
                 role: 'assistant',
                 content: `Here are some tiles that match your search for "${inputMessage}". Note: This is mock data as the API is currently unavailable.`,
-                timestamp: Date.now(),
-                products: MOCK_PRODUCTS.map(normalizeProduct)
+                timestamp: Date.now()
             };
             setMessages(prev => [...prev, mockResponse]);
+            // Normalize mock products
+            const normalizedMockProducts = MOCK_PRODUCTS.map(normalizeProduct);
+            setProducts(normalizedMockProducts);
             toast.error('API is currently unavailable. Showing mock data.');
         }
 
@@ -515,23 +524,28 @@ export default function ChatInterface() {
         setInputMessage('');
     };
 
-    const handleBookmark = (product: Product) => {
+    const handleBookmark = async (product: Product) => {
         try {
-            const existingBookmarks = getBookmarks();
-            const isAlreadyBookmarked = existingBookmarks.some((b: Bookmark) => b.productId === product.productId);
-            let updatedBookmarks;
+            const bookmarks = getBookmarks();
+            const isAlreadyBookmarked = bookmarks.some((b: Bookmark) => b.productId === product.productId);
+
             if (isAlreadyBookmarked) {
-                updatedBookmarks = existingBookmarks.filter((b: Bookmark) => b.productId !== product.productId);
-                saveBookmarks(updatedBookmarks);
-                toast.success('Deleted from bookmarks');
-            } else {
-                updatedBookmarks = [...existingBookmarks, { ...product, bookmarkedAt: Date.now() }];
-                saveBookmarks(updatedBookmarks);
-                toast.success('Added to bookmarks');
+                toast.error('Product is already bookmarked');
+                return;
             }
+
+            const newBookmark: Bookmark = {
+                ...product,
+                bookmarkedAt: Date.now()
+            };
+
+            const updatedBookmarks = [...bookmarks, newBookmark];
+            localStorage.setItem('bookmarks', JSON.stringify(updatedBookmarks));
+            window.dispatchEvent(new Event('bookmarks-updated'));
+            toast.success('Product added to bookmarks');
         } catch (error) {
             console.error('Error bookmarking product:', error);
-            toast.error('Bookmark action failed');
+            toast.error('Failed to bookmark product');
         }
     };
 
@@ -682,7 +696,7 @@ export default function ChatInterface() {
                                                     {isBookmarked ? (
                                                         <BookmarkCheck size={18} className="text-amber-600 fill-current transition-colors" />
                                                     ) : (
-                                                            <Bookmark size={18} className="text-gray-400 group-hover:text-primary transition-colors" />
+                                                        <Bookmark size={18} className="text-gray-400 group-hover:text-primary transition-colors" />
                                                     )}
                                                 </button>
                                                 {product.productDetails['Photo Hover'] && (
