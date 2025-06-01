@@ -9,7 +9,7 @@ export async function POST(request: Request) {
         const point_x = form.get('point_x');
         const point_y = form.get('point_y');
 
-        // Tạo formData mới để forward sang API gốc
+        // Tạo formData mới để forward sang API gốc.
         const forwardForm = new FormData();
         forwardForm.append('original', original);
         forwardForm.append('tile', tile);
