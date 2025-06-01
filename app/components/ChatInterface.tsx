@@ -5,7 +5,7 @@ import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { Loader2, Bookmark, BookmarkCheck, Eye } from 'lucide-react';
 import ReactModal from 'react-modal';
-import { handleChatActions, getBookmarks, getCollections, showCollection } from './Homepage/chat-actions';
+import { handleChatActions, showCollection } from './Homepage/chat-actions';
 
 // Mock data for testing when API is not available
 const MOCK_PRODUCTS = [
@@ -83,29 +83,6 @@ interface ChatResponse {
     showBookmarks?: boolean;
 }
 
-interface SearchCriteria {
-    searchType: "Material" | "Color Group" | "Size" | "Usage" | "Trim";
-    searchValue: string;
-}
-
-interface CombinedSearchBookmarkResponse {
-    action: "search_and_bookmark";
-    criteria: SearchCriteria[];
-    bookmarkResponse: string;
-    askCollection: boolean;
-    collectionPrompt: string;
-}
-
-interface CombinedSearchBookmarkCollectionResponse {
-    action: "search_bookmark_collection";
-    criteria: SearchCriteria[];
-    bookmarkResponse: string;
-    collectionName: string;
-    collectionResponse: string;
-}
-
-type CombinedResponse = CombinedSearchBookmarkResponse | CombinedSearchBookmarkCollectionResponse;
-
 // Update the normalizeProduct function
 const normalizeProduct = (product: any): Product => {
     // Ensure all required fields are present with default values
@@ -150,15 +127,10 @@ export default function ChatInterface() {
         }
     ]);
     const [inputMessage, setInputMessage] = useState('');
-    const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [askingAboutCollection, setAskingAboutCollection] = useState(false);
     const [lastBookmarkedProducts, setLastBookmarkedProducts] = useState<Product[]>([]);
-    const [collections, setCollections] = useState<Collection[]>([]);
     const [showCollectionModal, setShowCollectionModal] = useState(false);
     const [modalCollection, setModalCollection] = useState<Collection | null>(null);
-    const [showChat, setShowChat] = useState(true);
-    const [bookmarksUpdated, setBookmarksUpdated] = useState(0);
 
     const generateId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -261,76 +233,6 @@ export default function ChatInterface() {
         }
     };
 
-    // Initialize with empty state and update after mount
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-
-        // Load initial collections
-        const collections = getCollections();
-        if (collections.length > 0) {
-            setCollections(collections);
-        }
-    }, []);
-
-    // Lắng nghe sự kiện cập nhật bookmark
-    useEffect(() => {
-        const handleBookmarksUpdated = () => setBookmarksUpdated(prev => prev + 1);
-        window.addEventListener('bookmarks-updated', handleBookmarksUpdated);
-        return () => window.removeEventListener('bookmarks-updated', handleBookmarksUpdated);
-    }, []);
-
-    const handleCollectionResponse = (input: string) => {
-        if (!lastBookmarkedProducts.length) {
-            setAskingAboutCollection(false);
-            return;
-        }
-
-        const newCollectionMatch = input.match(/^(?:new:|create:?)\s*(.+)$/i);
-        if (newCollectionMatch) {
-            // Handle new collection creation
-            const collectionName = newCollectionMatch[1].trim();
-            const success = addToCollection(lastBookmarkedProducts, collectionName, true);
-
-            const assistantMessage: ChatMessage = {
-                id: generateId(),
-                role: 'assistant',
-                content: success
-                    ? `I've created a new collection called '${collectionName}' and added these tiles to it. Is there anything else you'd like to do?`
-                    : `Sorry, I couldn't create the collection. Please try again.`,
-                timestamp: Date.now()
-            };
-            setMessages(prev => [...prev, assistantMessage]);
-        } else {
-            // Handle existing collection
-            const collections = getCollections();
-            const collectionName = input.replace(/^add to\s*/i, '').trim();
-            const collectionExists = collections.some(c => c.name.toLowerCase() === collectionName.toLowerCase());
-
-            if (collectionExists) {
-                const success = addToCollection(lastBookmarkedProducts, collectionName);
-                const assistantMessage: ChatMessage = {
-                    id: generateId(),
-                    role: 'assistant',
-                    content: success
-                        ? `I've added these tiles to your '${collectionName}' collection. Is there anything else you'd like to do?`
-                        : `Sorry, I couldn't add the tiles to the collection. Please try again.`,
-                    timestamp: Date.now()
-                };
-                setMessages(prev => [...prev, assistantMessage]);
-            } else {
-                const assistantMessage: ChatMessage = {
-                    id: generateId(),
-                    role: 'assistant',
-                    content: `I couldn't find a collection called '${collectionName}'. Would you like to create it as a new collection? You can say "new: ${collectionName}"`,
-                    timestamp: Date.now()
-                };
-                setMessages(prev => [...prev, assistantMessage]);
-            }
-        }
-
-        setAskingAboutCollection(false);
-    };
-
     const formatCollectionMessage = (collections: Collection[]): string => {
         if (collections.length === 0) {
             return "You don't have any collections yet. You can create one by bookmarking tiles and adding them to a collection.";
@@ -345,6 +247,35 @@ export default function ChatInterface() {
         }
         // We'll return a placeholder, actual rendering will be handled below
         return '__SHOW_BOOKMARKS__';
+    };
+
+    // Helper to store and retrieve latest found tiles
+    const getLatestFoundTiles = (): Product[] => {
+        try {
+            const tilesStr = localStorage.getItem('latest_found_tiles');
+            return tilesStr ? JSON.parse(tilesStr) : [];
+        } catch (error) {
+            console.error('Error getting latest found tiles:', error);
+            return [];
+        }
+    };
+    const setLatestFoundTiles = (tiles: Product[]): void => {
+        try {
+            // Map each tile to set Images = Image if Image exists
+            const mappedTiles = tiles.map(tile => {
+                const image = (tile.productDetails as any)?.Image || tile.productDetails['Photo Hover'] || '';
+                return {
+                    ...tile,
+                    productDetails: {
+                        ...tile.productDetails,
+                        Images: image
+                    }
+                };
+            });
+            localStorage.setItem('latest_found_tiles', JSON.stringify(mappedTiles));
+        } catch (error) {
+            console.error('Error setting latest found tiles:', error);
+        }
     };
 
     // Handle sending a message to the chat
@@ -364,20 +295,26 @@ export default function ChatInterface() {
         const showCollectionMatch = inputMessage.match(/show\s+collection\s+(?:named\s+)?['"]?([^'"]+)['"]?/i);
         if (showCollectionMatch) {
             const collectionName = showCollectionMatch[1].trim();
-            const { message, products } = showCollection(collectionName);
-
-            const assistantMessage: ChatMessage = {
-                id: generateId(),
-                role: 'assistant',
-                content: message,
-                timestamp: Date.now()
-            };
-            setMessages(prev => [...prev, assistantMessage]);
-
-            if (products.length > 0) {
-                setProducts(products);
+            const collections = getCollections();
+            const foundCollection = collections.find(c => c.name.toLowerCase() === collectionName.toLowerCase());
+            let assistantMessage: ChatMessage;
+            if (foundCollection) {
+                assistantMessage = {
+                    id: generateId(),
+                    role: 'assistant',
+                    content: `Collection: ${foundCollection.name}`,
+                    timestamp: Date.now(),
+                    products: foundCollection.products
+                };
+            } else {
+                assistantMessage = {
+                    id: generateId(),
+                    role: 'assistant',
+                    content: `Collection '${collectionName}' does not exist.`,
+                    timestamp: Date.now()
+                };
             }
-
+            setMessages(prev => [...prev, assistantMessage]);
             setInputMessage('');
             return;
         }
@@ -408,12 +345,6 @@ export default function ChatInterface() {
                 timestamp: Date.now()
             };
             setMessages(prev => [...prev, assistantMessage]);
-            setInputMessage('');
-            return;
-        }
-
-        if (askingAboutCollection) {
-            handleCollectionResponse(inputMessage);
             setInputMessage('');
             return;
         }
@@ -452,10 +383,6 @@ export default function ChatInterface() {
             // Handle localStorage operations based on the action
             handleChatActions(data);
 
-            // Normalize products from API response
-            const normalizedProducts = data.products.map(normalizeProduct);
-            setProducts(normalizedProducts);
-
             // Handle show collections action from backend
             if (data.showCollections) {
                 const collections = getCollections();
@@ -470,11 +397,25 @@ export default function ChatInterface() {
                 data.message = bookmarksMessage;
             }
 
+            let productsForMessage: Product[] | undefined = undefined;
+            if ([
+                'search',
+                'search_and_bookmark',
+                'search_bookmark_collection'
+            ].includes(data.action) && data.products && data.products.length > 0) {
+                productsForMessage = data.products.map(normalizeProduct);
+            } else if (data.action === 'show_bookmark') {
+                const bookmarks = getBookmarks();
+                if (bookmarks.length > 0) {
+                    productsForMessage = bookmarks;
+                }
+            }
             const assistantMessage: ChatMessage = {
                 id: generateId(),
                 role: 'assistant',
                 content: data.message,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                products: productsForMessage
             };
             setMessages(prev => [...prev, assistantMessage]);
 
@@ -482,27 +423,46 @@ export default function ChatInterface() {
             switch (data.action) {
                 case 'search':
                     if (data.products && data.products.length > 0) {
-                        setProducts(data.products.map(normalizeProduct));
+                        setLatestFoundTiles(data.products.map(normalizeProduct));
                     }
                     break;
                 case 'search_and_bookmark':
-                case 'search_bookmark_collection':
                     if (data.products.length > 0) {
                         setLastBookmarkedProducts(data.products);
-                        if (data.askCollection) {
-                            setAskingAboutCollection(true);
+                        setLatestFoundTiles(data.products.map(normalizeProduct));
+                    }
+                    break;
+                case 'search_bookmark_collection':
+                    if (data.collectionName && data.products && data.products.length > 0) {
+                        addToCollection(data.products, data.collectionName, true);
+                    }
+                    if (data.products && data.products.length > 0) {
+                        setLastBookmarkedProducts(data.products);
+                        setLatestFoundTiles(data.products.map(normalizeProduct));
+                    }
+                    break;
+                case 'collection':
+                    if (data.action === 'collection' && data.collectionName) {
+                        const latestTiles = getLatestFoundTiles();
+                        if (latestTiles && latestTiles.length > 0) {
+                            addToBookmarks(latestTiles);
+                            addToCollection(latestTiles, data.collectionName, true);
                         }
                     }
-                    break;
-
-                case 'bookmark':
-                    if (data.askCollection) {
-                        setAskingAboutCollection(true);
+                    if (data.products && data.products.length > 0) {
+                        setLastBookmarkedProducts(data.products);
+                        setLatestFoundTiles(data.products.map(normalizeProduct));
                     }
                     break;
-
-                case 'collection':
-                    setAskingAboutCollection(true);
+                case 'bookmark':
+                    let productsToBookmark = data.products;
+                    if ((!productsToBookmark || productsToBookmark.length === 0)) {
+                        productsToBookmark = getLatestFoundTiles();
+                    }
+                    if (productsToBookmark && productsToBookmark.length > 0) {
+                        addToBookmarks(productsToBookmark);
+                        setLastBookmarkedProducts(productsToBookmark);
+                    }
                     break;
             }
         } catch (error) {
@@ -514,9 +474,6 @@ export default function ChatInterface() {
                 timestamp: Date.now()
             };
             setMessages(prev => [...prev, mockResponse]);
-            // Normalize mock products
-            const normalizedMockProducts = MOCK_PRODUCTS.map(normalizeProduct);
-            setProducts(normalizedMockProducts);
             toast.error('API is currently unavailable. Showing mock data.');
         }
 
@@ -628,6 +585,7 @@ export default function ChatInterface() {
     // Xóa lịch sử chat khi reload trang
     useEffect(() => {
         localStorage.removeItem('chat_history');
+        localStorage.removeItem('latest_found_tiles'); // Clear latest found tiles on new chat
     }, []);
 
     const scrollToBottom = () => {
@@ -664,10 +622,10 @@ export default function ChatInterface() {
                     return (
                         <div key={message.id}>
                             <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[80%] sm:max-w-[80%] w-full rounded-lg p-3 break-words ${message.role === 'user'
+                                <div className={`inline-block max-w-[80%] sm:max-w-[80%] rounded-lg p-3 break-words ${message.role === 'user'
                                     ? 'bg-gray-500 text-white'
                                     : 'bg-gray-100'
-                                    }`}>
+                                    }`} style={{ wordBreak: 'break-word', whiteSpace: 'pre-line' }}>
                                     {message.content}
                                 </div>
                             </div>

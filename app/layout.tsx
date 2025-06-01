@@ -9,8 +9,8 @@ import Footer from "@/components/Homepage/footer";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Caden Tile",
-  description: "Caden Tile - Your Trusted Partner in Tile Solutions",
+  title: "Caden Partner",
+  description: "Caden Partner - Your Trusted Partner in Tile Solutions",
 };
 
 export default function RootLayout({
