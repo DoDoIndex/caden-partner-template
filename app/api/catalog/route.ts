@@ -25,10 +25,24 @@ export async function GET(request: Request) {
         }
 
         const data = await response.json();
+
+        // Process the data to split Images field into arrays
+        const processedData = Array.isArray(data.data) ? data.data : data;
+        if (Array.isArray(processedData)) {
+            processedData.forEach((product: any) => {
+                if (product.productDetails?.Images && typeof product.productDetails.Images === 'string') {
+                    product.productDetails.Images = product.productDetails.Images
+                        .split('\n')
+                        .map((url: string) => url.trim())
+                        .filter((url: string) => url.length > 0);
+                }
+            });
+        }
+
         return NextResponse.json({
             success: true,
-            data: data.data || data,
-            total: data.total || data.length
+            data: processedData,
+            total: data.total || processedData.length
         });
     } catch (error) {
         console.error('Error fetching catalog:', error);
