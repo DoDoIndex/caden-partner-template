@@ -35,7 +35,7 @@ interface Product {
         Categories: string;
         Trim: string;
         Size: string;
-        Images: string | string[];
+        Images: string;
         Color: string;
         Material: string;
         unit_price: number;
@@ -108,9 +108,22 @@ const normalizeProduct = (product: any): Product => {
         }
     };
 
-    // Convert Images to array if it's a string
-    if (typeof normalizedProduct.productDetails.Images === 'string') {
-        normalizedProduct.productDetails.Images = normalizedProduct.productDetails.Images.split('\n').filter(Boolean);
+    // Handle image processing similar to backend
+    const details = normalizedProduct.productDetails;
+    if (details.Images) {
+        if (typeof details.Images === 'string') {
+            // Take first image from newline-separated string
+            const images = details.Images.split('\n').filter(Boolean);
+            details.Images = images[0] || '';
+        } else if (Array.isArray(details.Images)) {
+            // Take first image from array
+            details.Images = details.Images[0] || '';
+        }
+    }
+
+    // If no Images field, try Photo Hover
+    if (!details.Images && details['Photo Hover']) {
+        details.Images = details['Photo Hover'];
     }
 
     return normalizedProduct;
@@ -128,7 +141,6 @@ export default function ChatInterface() {
     ]);
     const [inputMessage, setInputMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [lastBookmarkedProducts, setLastBookmarkedProducts] = useState<Product[]>([]);
     const [showCollectionModal, setShowCollectionModal] = useState(false);
     const [modalCollection, setModalCollection] = useState<Collection | null>(null);
 
@@ -410,6 +422,7 @@ export default function ChatInterface() {
                     productsForMessage = bookmarks;
                 }
             }
+
             const assistantMessage: ChatMessage = {
                 id: generateId(),
                 role: 'assistant',
@@ -427,8 +440,7 @@ export default function ChatInterface() {
                     }
                     break;
                 case 'search_and_bookmark':
-                    if (data.products.length > 0) {
-                        setLastBookmarkedProducts(data.products);
+                    if (data.products && data.products.length > 0) {
                         setLatestFoundTiles(data.products.map(normalizeProduct));
                     }
                     break;
@@ -437,12 +449,11 @@ export default function ChatInterface() {
                         addToCollection(data.products, data.collectionName, true);
                     }
                     if (data.products && data.products.length > 0) {
-                        setLastBookmarkedProducts(data.products);
                         setLatestFoundTiles(data.products.map(normalizeProduct));
                     }
                     break;
                 case 'collection':
-                    if (data.action === 'collection' && data.collectionName) {
+                    if (data.collectionName) {
                         const latestTiles = getLatestFoundTiles();
                         if (latestTiles && latestTiles.length > 0) {
                             addToBookmarks(latestTiles);
@@ -450,7 +461,6 @@ export default function ChatInterface() {
                         }
                     }
                     if (data.products && data.products.length > 0) {
-                        setLastBookmarkedProducts(data.products);
                         setLatestFoundTiles(data.products.map(normalizeProduct));
                     }
                     break;
@@ -461,7 +471,6 @@ export default function ChatInterface() {
                     }
                     if (productsToBookmark && productsToBookmark.length > 0) {
                         addToBookmarks(productsToBookmark);
-                        setLastBookmarkedProducts(productsToBookmark);
                     }
                     break;
             }
@@ -657,10 +666,10 @@ export default function ChatInterface() {
                                                         <Bookmark size={18} className="text-gray-400 group-hover:text-primary transition-colors" />
                                                     )}
                                                 </button>
-                                                {product.productDetails.Images && product.productDetails.Images.length > 0 ? (
+                                                {product.productDetails.Images ? (
                                                     <div className="relative w-full aspect-square mb-2">
                                                         <Image
-                                                            src={Array.isArray(product.productDetails.Images) ? product.productDetails.Images[0] : product.productDetails.Images}
+                                                            src={product.productDetails.Images}
                                                             alt={product.productDetails.Name}
                                                             fill
                                                             className="object-cover rounded"
