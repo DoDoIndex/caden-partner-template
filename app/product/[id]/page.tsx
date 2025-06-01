@@ -135,7 +135,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                     </div>
                 ) : product ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Phần hình ảnh */}
+                                {/* Image section */}
                         <div className="space-y-4">
                                     <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100">
                                         {selectedImage && (
@@ -175,7 +175,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                                     )}
                         </div>
 
-                                {/* Phần thông tin sản phẩm */}
+                                {/* Product information section */}
                                 <div className="space-y-4 border-1 border-stone-200 rounded-lg shadow">
                                     <div className='bg-stone-200 p-4 rounded-lg'>
                                         <div className='flex justify-between'>
@@ -215,7 +215,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                                 </div>
                             </div>
 
-                                    {/* Thông tin chi tiết */}
+                                    {/* Detailed information */}
                                     <div className="border-t border-gray-200 pt-6 p-4">
                                         <h2 className="text-lg font-semibold mb-4">Product Details</h2>
                                         <dl className="grid grid-cols-1 gap-4">
@@ -258,7 +258,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                                         </dl>
                                     </div>
 
-                                    {/* Mô tả sử dụng */}
+                                    {/* Usage description */}
                                     {product.productDetails?.Usage && (
                                         <div className="border-t border-gray-200 pt-6 p-4">
                                             <h2 className="text-lg font-semibold mb-4">Usage</h2>

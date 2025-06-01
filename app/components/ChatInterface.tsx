@@ -520,7 +520,7 @@ export default function ChatInterface() {
                 const updatedBookmarks = bookmarks.filter((b: Bookmark) => b.productId !== product.productId);
                 localStorage.setItem('bookmarks', JSON.stringify(updatedBookmarks));
                 window.dispatchEvent(new Event('bookmarks-updated'));
-                toast.success('Đã xóa khỏi bookmark');
+                toast.success('Removed from bookmark');
             } else {
                 // Thêm bookmark mới
                 const newBookmark: Bookmark = {
@@ -530,11 +530,11 @@ export default function ChatInterface() {
                 const updatedBookmarks = [...bookmarks, newBookmark];
                 localStorage.setItem('bookmarks', JSON.stringify(updatedBookmarks));
                 window.dispatchEvent(new Event('bookmarks-updated'));
-                toast.success('Đã thêm vào bookmark');
+                toast.success('Added to bookmark');
             }
         } catch (error) {
             console.error('Error bookmarking product:', error);
-            toast.error('Không thể thực hiện thao tác bookmark');
+            toast.error('Error bookmarking product');
         }
     };
 
@@ -682,7 +682,7 @@ export default function ChatInterface() {
                                                 <button
                                                     onClick={() => handleBookmark(product)}
                                                     className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md transition-colors z-10 hover:bg-gray-100"
-                                                    title={isBookmarked ? "Xóa khỏi bookmark" : "Thêm vào bookmark"}
+                                                    title={isBookmarked ? "Remove from bookmark" : "Add to bookmark"}
                                                 >
                                                     {isBookmarked ? (
                                                         <BookmarkCheck size={18} className="text-amber-600 fill-current" />
