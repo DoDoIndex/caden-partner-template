@@ -73,7 +73,8 @@ export default function DesignerPage() {
         setResultImg(null);
         let tileFile: File | null = null;
         if (selectedTile.image.startsWith('http') || selectedTile.image.startsWith('/')) {
-            const res = await fetch(selectedTile.image);
+            const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(selectedTile.image)}`;
+            const res = await fetch(proxyUrl);
             const blob = await res.blob();
             tileFile = new File([blob], 'tile01.webp', { type: blob.type });
         }
