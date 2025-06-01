@@ -5,28 +5,7 @@ import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { Loader2, Bookmark, BookmarkCheck, Eye } from 'lucide-react';
 import ReactModal from 'react-modal';
-import { handleChatActions, showCollection } from './Homepage/chat-actions';
-
-// Mock data for testing when API is not available
-const MOCK_PRODUCTS = [
-    {
-        "productId": 3428,
-        "productDetails": {
-            "Usage": "Commercial Floors\nHeated Floors\nIndoor Floors\nIndoor Walls\nOutdoor Walls\nShower Walls\nSteam Rooms\nSwimming Pools",
-            "Trim": "Field Tile",
-            "Size": "35x35 Field",
-            "Color": "Ivory Matt Polished",
-            "Material": "Porcelain",
-            "unit_price": 13.08,
-            "Name": "Ares Ivory Matt Polished 35x35 Field",
-            "Color Group": "Beige\nWhite",
-            "Collection": "Ares",
-            "Coverage (sqft)": "8.72",
-            "Size Advanced": "35.4\"x35.4\" | Thickness: 9 mm",
-            "Photo Hover": "https://cdn.swell.store/caden-tile/682b51056b13380013175fc4/5c75c1491f08a50134c509845844f82c/Ares-Ivory-Matt-Polished-35x35-02.webp"
-        }
-    }
-];
+import { handleChatActions } from './Homepage/chat-actions';
 
 interface Product {
     productId: number;
@@ -218,7 +197,12 @@ export default function ChatInterface() {
                 const newCollection: Collection = {
                     id: `collection_${now}`,
                     name: collectionName,
-                    products: products.map(p => ({ ...normalizeProduct(p), bookmarkedAt: now })),
+                    products: products.map(p => {
+                        const normalized = { ...normalizeProduct(p) };
+                        // Add partnerPrice field
+                        const partnerPrice = (normalized.productDetails.unit_price * 1.3).toFixed(2);
+                        return { ...normalized, partnerPrice, bookmarkedAt: now };
+                    }),
                     createdAt: now,
                     updatedAt: now
                 };
@@ -230,7 +214,11 @@ export default function ChatInterface() {
                     const newProducts = products.filter(product =>
                         !existingCollection.products.some(p => p.productId === product.productId)
                     );
-                    existingCollection.products.push(...newProducts.map(p => ({ ...normalizeProduct(p), bookmarkedAt: now })));
+                    existingCollection.products.push(...newProducts.map(p => {
+                        const normalized = { ...normalizeProduct(p) };
+                        const partnerPrice = (normalized.productDetails.unit_price * 1.3).toFixed(2);
+                        return { ...normalized, partnerPrice, bookmarkedAt: now };
+                    }));
                     existingCollection.updatedAt = now;
                 } else {
                     return false;
@@ -303,7 +291,37 @@ export default function ChatInterface() {
         setMessages(prev => [...prev, userMessage]);
         setTimeout(scrollToBottom, 100);
 
-        // Check for collection viewing request
+        // Check for bookmarks viewing request
+        if ([
+            'show bookmark',
+            'show my bookmark',
+            'list bookmark',
+            'list my bookmark'
+        ].includes(inputMessage.trim().toLowerCase())) {
+            const bookmarks = getBookmarks();
+            let assistantMessage: ChatMessage;
+            if (bookmarks.length > 0) {
+                assistantMessage = {
+                    id: generateId(),
+                    role: 'assistant',
+                    content: 'Here are your bookmarks:',
+                    timestamp: Date.now(),
+                    products: bookmarks
+                };
+            } else {
+                assistantMessage = {
+                    id: generateId(),
+                    role: 'assistant',
+                    content: 'You don\'t have any bookmarks yet. Start bookmarking your favorite tiles!',
+                    timestamp: Date.now()
+                };
+            }
+            setMessages(prev => [...prev, assistantMessage]);
+            setInputMessage('');
+            return;
+        }
+
+        // Check for collection viewing request (not bookmarks)
         const showCollectionMatch = inputMessage.match(/show\s+collection\s+(?:named\s+)?['"]?([^'"]+)['"]?/i);
         if (showCollectionMatch) {
             const collectionName = showCollectionMatch[1].trim();
@@ -331,7 +349,7 @@ export default function ChatInterface() {
             return;
         }
 
-        // Check for general collection viewing request
+        // Check for general collection viewing request (not bookmarks)
         if (inputMessage.toLowerCase().match(/show|list|view|see|display.*collection/i)) {
             const collections = getCollections();
             const collectionMessage = formatCollectionMessage(collections);
@@ -339,21 +357,6 @@ export default function ChatInterface() {
                 id: generateId(),
                 role: 'assistant',
                 content: collectionMessage,
-                timestamp: Date.now()
-            };
-            setMessages(prev => [...prev, assistantMessage]);
-            setInputMessage('');
-            return;
-        }
-
-        // Check for bookmarks viewing request
-        if (inputMessage.toLowerCase().match(/show|list|view|see|display.*bookmark/i)) {
-            const bookmarks = getBookmarks();
-            const bookmarksMessage = formatBookmarksMessage(bookmarks);
-            const assistantMessage: ChatMessage = {
-                id: generateId(),
-                role: 'assistant',
-                content: bookmarksMessage,
                 timestamp: Date.now()
             };
             setMessages(prev => [...prev, assistantMessage]);
