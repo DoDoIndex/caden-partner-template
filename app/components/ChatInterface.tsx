@@ -93,7 +93,7 @@ const normalizeProduct = (product: any): Product => {
             Categories: product.productDetails?.Categories || '',
             Trim: product.productDetails?.Trim || '',
             Size: product.productDetails?.Size || '',
-            Images: product.productDetails?.Images || '',
+            Images: product.productDetails?.Image || product.productDetails?.Images || product.productDetails?.['Photo Hover'] || '',
             Color: product.productDetails?.Color || '',
             Material: product.productDetails?.Material || '',
             unit_price: product.productDetails?.unit_price || 0,
@@ -263,7 +263,7 @@ export default function ChatInterface() {
         try {
             // Map each tile to set Images = Image if Image exists
             const mappedTiles = tiles.map(tile => {
-                const image = (tile.productDetails as any)?.Image || tile.productDetails['Photo Hover'] || '';
+                const image = (tile.productDetails as any)?.Images || '';
                 return {
                     ...tile,
                     productDetails: {
@@ -657,14 +657,18 @@ export default function ChatInterface() {
                                                         <Bookmark size={18} className="text-gray-400 group-hover:text-primary transition-colors" />
                                                     )}
                                                 </button>
-                                                {product.productDetails['Photo Hover'] && (
+                                                {product.productDetails.Images && product.productDetails.Images.length > 0 ? (
                                                     <div className="relative w-full aspect-square mb-2">
                                                         <Image
-                                                            src={product.productDetails['Photo Hover']}
+                                                            src={Array.isArray(product.productDetails.Images) ? product.productDetails.Images[0] : product.productDetails.Images}
                                                             alt={product.productDetails.Name}
                                                             fill
                                                             className="object-cover rounded"
                                                         />
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-full aspect-square mb-2 bg-gray-100 rounded flex items-center justify-center">
+                                                        <span className="text-gray-400 text-sm">No image available</span>
                                                     </div>
                                                 )}
                                                 <div className="space-y-1">
@@ -726,16 +730,18 @@ export default function ChatInterface() {
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                                 {modalCollection.products.map((product, idx) => (
                                     <div key={product.productId ? `${product.productId}_${idx}` : idx} className="flex flex-col items-center">
-                                        {product.productDetails['Photo Hover'] ? (
+                                        {product.productDetails.Images && product.productDetails.Images.length > 0 ? (
                                             <Image
-                                                src={product.productDetails['Photo Hover']}
+                                                src={Array.isArray(product.productDetails.Images) ? product.productDetails.Images[0] : product.productDetails.Images}
                                                 alt={product.productDetails.Name}
                                                 width={120}
                                                 height={120}
                                                 className="object-cover rounded mb-2"
                                             />
                                         ) : (
-                                            <div className="w-[120px] h-[120px] bg-gray-200 flex items-center justify-center rounded mb-2 text-xs text-gray-500">No Image</div>
+                                            <div className="w-[120px] h-[120px] bg-gray-100 flex items-center justify-center rounded mb-2">
+                                                <span className="text-gray-400 text-xs">No image</span>
+                                            </div>
                                         )}
                                         <div className="text-xs text-center">{product.productDetails.Name}</div>
                                     </div>
