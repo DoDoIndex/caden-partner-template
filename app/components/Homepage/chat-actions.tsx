@@ -41,12 +41,6 @@ export const handleChatActions = (response: ChatResponse): void => {
             }
             break;
 
-        case 'collection':
-            if (response.collectionName) {
-                createCollection(response.collectionName);
-            }
-            break;
-
         case 'show_collection':
             if (response.collectionName) {
                 showCollection(response.collectionName);

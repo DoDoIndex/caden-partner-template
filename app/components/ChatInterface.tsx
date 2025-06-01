@@ -5,28 +5,7 @@ import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { Loader2, Bookmark, BookmarkCheck, Eye } from 'lucide-react';
 import ReactModal from 'react-modal';
-import { handleChatActions, showCollection } from './Homepage/chat-actions';
-
-// Mock data for testing when API is not available
-const MOCK_PRODUCTS = [
-    {
-        "productId": 3428,
-        "productDetails": {
-            "Usage": "Commercial Floors\nHeated Floors\nIndoor Floors\nIndoor Walls\nOutdoor Walls\nShower Walls\nSteam Rooms\nSwimming Pools",
-            "Trim": "Field Tile",
-            "Size": "35x35 Field",
-            "Color": "Ivory Matt Polished",
-            "Material": "Porcelain",
-            "unit_price": 13.08,
-            "Name": "Ares Ivory Matt Polished 35x35 Field",
-            "Color Group": "Beige\nWhite",
-            "Collection": "Ares",
-            "Coverage (sqft)": "8.72",
-            "Size Advanced": "35.4\"x35.4\" | Thickness: 9 mm",
-            "Photo Hover": "https://cdn.swell.store/caden-tile/682b51056b13380013175fc4/5c75c1491f08a50134c509845844f82c/Ares-Ivory-Matt-Polished-35x35-02.webp"
-        }
-    }
-];
+import { handleChatActions } from './Homepage/chat-actions';
 
 interface Product {
     productId: number;
@@ -35,7 +14,7 @@ interface Product {
         Categories: string;
         Trim: string;
         Size: string;
-        Images: string | string[];
+        Images: string;
         Color: string;
         Material: string;
         unit_price: number;
@@ -108,9 +87,22 @@ const normalizeProduct = (product: any): Product => {
         }
     };
 
-    // Convert Images to array if it's a string
-    if (typeof normalizedProduct.productDetails.Images === 'string') {
-        normalizedProduct.productDetails.Images = normalizedProduct.productDetails.Images.split('\n').filter(Boolean);
+    // Handle image processing similar to backend
+    const details = normalizedProduct.productDetails;
+    if (details.Images) {
+        if (typeof details.Images === 'string') {
+            // Take first image from newline-separated string
+            const images = details.Images.split('\n').filter(Boolean);
+            details.Images = images[0] || '';
+        } else if (Array.isArray(details.Images)) {
+            // Take first image from array
+            details.Images = details.Images[0] || '';
+        }
+    }
+
+    // If no Images field, try Photo Hover
+    if (!details.Images && details['Photo Hover']) {
+        details.Images = details['Photo Hover'];
     }
 
     return normalizedProduct;
@@ -128,7 +120,6 @@ export default function ChatInterface() {
     ]);
     const [inputMessage, setInputMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [lastBookmarkedProducts, setLastBookmarkedProducts] = useState<Product[]>([]);
     const [showCollectionModal, setShowCollectionModal] = useState(false);
     const [modalCollection, setModalCollection] = useState<Collection | null>(null);
 
@@ -206,7 +197,12 @@ export default function ChatInterface() {
                 const newCollection: Collection = {
                     id: `collection_${now}`,
                     name: collectionName,
-                    products: products.map(p => ({ ...normalizeProduct(p), bookmarkedAt: now })),
+                    products: products.map(p => {
+                        const normalized = { ...normalizeProduct(p) };
+                        // Add partnerPrice field
+                        const partnerPrice = (normalized.productDetails.unit_price * 1.3).toFixed(2);
+                        return { ...normalized, partnerPrice, bookmarkedAt: now };
+                    }),
                     createdAt: now,
                     updatedAt: now
                 };
@@ -218,7 +214,11 @@ export default function ChatInterface() {
                     const newProducts = products.filter(product =>
                         !existingCollection.products.some(p => p.productId === product.productId)
                     );
-                    existingCollection.products.push(...newProducts.map(p => ({ ...normalizeProduct(p), bookmarkedAt: now })));
+                    existingCollection.products.push(...newProducts.map(p => {
+                        const normalized = { ...normalizeProduct(p) };
+                        const partnerPrice = (normalized.productDetails.unit_price * 1.3).toFixed(2);
+                        return { ...normalized, partnerPrice, bookmarkedAt: now };
+                    }));
                     existingCollection.updatedAt = now;
                 } else {
                     return false;
@@ -291,7 +291,37 @@ export default function ChatInterface() {
         setMessages(prev => [...prev, userMessage]);
         setTimeout(scrollToBottom, 100);
 
-        // Check for collection viewing request
+        // Check for bookmarks viewing request
+        if ([
+            'show bookmark',
+            'show my bookmark',
+            'list bookmark',
+            'list my bookmark'
+        ].includes(inputMessage.trim().toLowerCase())) {
+            const bookmarks = getBookmarks();
+            let assistantMessage: ChatMessage;
+            if (bookmarks.length > 0) {
+                assistantMessage = {
+                    id: generateId(),
+                    role: 'assistant',
+                    content: 'Here are your bookmarks:',
+                    timestamp: Date.now(),
+                    products: bookmarks
+                };
+            } else {
+                assistantMessage = {
+                    id: generateId(),
+                    role: 'assistant',
+                    content: 'You don\'t have any bookmarks yet. Start bookmarking your favorite tiles!',
+                    timestamp: Date.now()
+                };
+            }
+            setMessages(prev => [...prev, assistantMessage]);
+            setInputMessage('');
+            return;
+        }
+
+        // Check for collection viewing request (not bookmarks)
         const showCollectionMatch = inputMessage.match(/show\s+collection\s+(?:named\s+)?['"]?([^'"]+)['"]?/i);
         if (showCollectionMatch) {
             const collectionName = showCollectionMatch[1].trim();
@@ -319,7 +349,7 @@ export default function ChatInterface() {
             return;
         }
 
-        // Check for general collection viewing request
+        // Check for general collection viewing request (not bookmarks)
         if (inputMessage.toLowerCase().match(/show|list|view|see|display.*collection/i)) {
             const collections = getCollections();
             const collectionMessage = formatCollectionMessage(collections);
@@ -327,21 +357,6 @@ export default function ChatInterface() {
                 id: generateId(),
                 role: 'assistant',
                 content: collectionMessage,
-                timestamp: Date.now()
-            };
-            setMessages(prev => [...prev, assistantMessage]);
-            setInputMessage('');
-            return;
-        }
-
-        // Check for bookmarks viewing request
-        if (inputMessage.toLowerCase().match(/show|list|view|see|display.*bookmark/i)) {
-            const bookmarks = getBookmarks();
-            const bookmarksMessage = formatBookmarksMessage(bookmarks);
-            const assistantMessage: ChatMessage = {
-                id: generateId(),
-                role: 'assistant',
-                content: bookmarksMessage,
                 timestamp: Date.now()
             };
             setMessages(prev => [...prev, assistantMessage]);
@@ -410,6 +425,7 @@ export default function ChatInterface() {
                     productsForMessage = bookmarks;
                 }
             }
+
             const assistantMessage: ChatMessage = {
                 id: generateId(),
                 role: 'assistant',
@@ -427,8 +443,7 @@ export default function ChatInterface() {
                     }
                     break;
                 case 'search_and_bookmark':
-                    if (data.products.length > 0) {
-                        setLastBookmarkedProducts(data.products);
+                    if (data.products && data.products.length > 0) {
                         setLatestFoundTiles(data.products.map(normalizeProduct));
                     }
                     break;
@@ -437,12 +452,11 @@ export default function ChatInterface() {
                         addToCollection(data.products, data.collectionName, true);
                     }
                     if (data.products && data.products.length > 0) {
-                        setLastBookmarkedProducts(data.products);
                         setLatestFoundTiles(data.products.map(normalizeProduct));
                     }
                     break;
                 case 'collection':
-                    if (data.action === 'collection' && data.collectionName) {
+                    if (data.collectionName) {
                         const latestTiles = getLatestFoundTiles();
                         if (latestTiles && latestTiles.length > 0) {
                             addToBookmarks(latestTiles);
@@ -450,7 +464,6 @@ export default function ChatInterface() {
                         }
                     }
                     if (data.products && data.products.length > 0) {
-                        setLastBookmarkedProducts(data.products);
                         setLatestFoundTiles(data.products.map(normalizeProduct));
                     }
                     break;
@@ -461,7 +474,6 @@ export default function ChatInterface() {
                     }
                     if (productsToBookmark && productsToBookmark.length > 0) {
                         addToBookmarks(productsToBookmark);
-                        setLastBookmarkedProducts(productsToBookmark);
                     }
                     break;
             }
@@ -657,10 +669,10 @@ export default function ChatInterface() {
                                                         <Bookmark size={18} className="text-gray-400 group-hover:text-primary transition-colors" />
                                                     )}
                                                 </button>
-                                                {product.productDetails.Images && product.productDetails.Images.length > 0 ? (
+                                                {product.productDetails.Images ? (
                                                     <div className="relative w-full aspect-square mb-2">
                                                         <Image
-                                                            src={Array.isArray(product.productDetails.Images) ? product.productDetails.Images[0] : product.productDetails.Images}
+                                                            src={product.productDetails.Images}
                                                             alt={product.productDetails.Name}
                                                             fill
                                                             className="object-cover rounded"
