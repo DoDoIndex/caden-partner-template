@@ -262,15 +262,14 @@ export default function BookmarkPage() {
     // Hàm chuyển ảnh URL sang base64
     const getImageBase64 = async (url: string): Promise<string | null> => {
         try {
-            const res = await fetch(url);
-            const blob = await res.blob();
-            return await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-        } catch {
+            const response = await fetch(`/api/fetch-image?url=${encodeURIComponent(url)}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch image');
+            }
+            const data = await response.json();
+            return data.base64;
+        } catch (error) {
+            console.error('Error fetching image:', error);
             return null;
         }
     };
