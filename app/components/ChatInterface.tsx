@@ -114,7 +114,14 @@ export default function ChatInterface() {
         {
             id: 'welcome',
             role: 'assistant' as const,
-            content: "I can help you find tiles based on Material, Color Group, Size, Usage, or Trim. Please specify what you're looking for. For example: 'Show me porcelain tiles' or 'Find tiles for indoor walls'",
+            content: `I can help you find tiles based on Material, Color Group or Size, bookmark your favorite tiles and create collections. 
+            Please specify what you'd like to do.
+            For example:
+            "Find white, porcelain tiles"
+            "Find green tiles and create collection 'The Green'"
+            "Give me blue tiles and add to bookmark"
+            "Show my bookmark"
+            "Show all collections"`,
             timestamp: Date.now()
         }
     ]);
