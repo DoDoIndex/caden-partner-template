@@ -129,6 +129,7 @@ export default function ChatInterface() {
     const [isLoading, setIsLoading] = useState(false);
     const [showCollectionModal, setShowCollectionModal] = useState(false);
     const [modalCollection, setModalCollection] = useState<Collection | null>(null);
+    const [bookmarksUpdated, setBookmarksUpdated] = useState(0);
 
     const generateId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -500,28 +501,40 @@ export default function ChatInterface() {
         setInputMessage('');
     };
 
+    // Thêm useEffect để lắng nghe sự kiện bookmark thay đổi
+    useEffect(() => {
+        const handleBookmarksUpdated = () => {
+            setBookmarksUpdated(prev => prev + 1);
+        };
+        window.addEventListener('bookmarks-updated', handleBookmarksUpdated);
+        return () => window.removeEventListener('bookmarks-updated', handleBookmarksUpdated);
+    }, []);
+
     const handleBookmark = async (product: Product) => {
         try {
             const bookmarks = getBookmarks();
             const isAlreadyBookmarked = bookmarks.some((b: Bookmark) => b.productId === product.productId);
 
             if (isAlreadyBookmarked) {
-                toast.error('Product is already bookmarked');
-                return;
+                // Xóa bookmark nếu đã tồn tại
+                const updatedBookmarks = bookmarks.filter((b: Bookmark) => b.productId !== product.productId);
+                localStorage.setItem('bookmarks', JSON.stringify(updatedBookmarks));
+                window.dispatchEvent(new Event('bookmarks-updated'));
+                toast.success('Đã xóa khỏi bookmark');
+            } else {
+                // Thêm bookmark mới
+                const newBookmark: Bookmark = {
+                    ...product,
+                    bookmarkedAt: Date.now()
+                };
+                const updatedBookmarks = [...bookmarks, newBookmark];
+                localStorage.setItem('bookmarks', JSON.stringify(updatedBookmarks));
+                window.dispatchEvent(new Event('bookmarks-updated'));
+                toast.success('Đã thêm vào bookmark');
             }
-
-            const newBookmark: Bookmark = {
-                ...product,
-                bookmarkedAt: Date.now()
-            };
-
-            const updatedBookmarks = [...bookmarks, newBookmark];
-            localStorage.setItem('bookmarks', JSON.stringify(updatedBookmarks));
-            window.dispatchEvent(new Event('bookmarks-updated'));
-            toast.success('Product added to bookmarks');
         } catch (error) {
             console.error('Error bookmarking product:', error);
-            toast.error('Failed to bookmark product');
+            toast.error('Không thể thực hiện thao tác bookmark');
         }
     };
 
@@ -668,12 +681,13 @@ export default function ChatInterface() {
                                             >
                                                 <button
                                                     onClick={() => handleBookmark(product)}
-                                                    className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md transition-colors z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:bg-gray-100"
+                                                    className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md transition-colors z-10 hover:bg-gray-100"
+                                                    title={isBookmarked ? "Xóa khỏi bookmark" : "Thêm vào bookmark"}
                                                 >
                                                     {isBookmarked ? (
-                                                        <BookmarkCheck size={18} className="text-amber-600 fill-current transition-colors" />
+                                                        <BookmarkCheck size={18} className="text-amber-600 fill-current" />
                                                     ) : (
-                                                        <Bookmark size={18} className="text-gray-400 group-hover:text-primary transition-colors" />
+                                                            <Bookmark size={18} className="text-gray-400 group-hover:text-primary" />
                                                     )}
                                                 </button>
                                                 {product.productDetails.Images ? (
