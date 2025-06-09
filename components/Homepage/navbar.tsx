@@ -33,6 +33,10 @@ export default function Navbar() {
                             className={`hover:text-amber-500 text-md font-semibold ${pathname === '/designer' ? 'text-amber-500' : 'text-stone-300'}`}
                         >Design</Link>
                         <Link
+                            href="/introduction"
+                            className={`hover:text-amber-500 text-md font-semibold ${pathname === '/introduction' ? 'text-amber-500' : 'text-stone-300'}`}
+                        >Handbook</Link>
+                        <Link
                             href="/about"
                             className={`hover:text-amber-500 text-md font-semibold ${pathname === '/about' ? 'text-amber-500' : 'text-stone-300'}`}
                         >About</Link>
@@ -57,6 +61,11 @@ export default function Navbar() {
                             <DropdownMenuItem asChild>
                                 <Link href="/designer" className="text-stone-300 hover:text-white cursor-pointer">
                                     Design
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href="/introduction" className="text-stone-300 hover:text-white cursor-pointer">
+                                    Handbook
                                 </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
