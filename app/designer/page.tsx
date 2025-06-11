@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Upload, Bookmark, Image as ImageIcon, Download, CheckCircle, XCircle, MapPin } from 'lucide-react';
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
 
 export default function DesignerPage() {
     const [uploadedImg, setUploadedImg] = useState<string | null>(null);
@@ -12,6 +13,16 @@ export default function DesignerPage() {
     const [point, setPoint] = useState<{ x: number; y: number } | null>(null);
     const [loading, setLoading] = useState(false);
     const [resultImg, setResultImg] = useState<string | null>(null);
+    const imgRef = React.useRef<HTMLImageElement>(null);
+    // Thêm danh sách background images
+    const backgroundImages = [
+        "Livingroom-01.png", "Livingroom-02.png", "Livingroom-03.png",
+        "Bedroom-01.png", "Bedroom-02.png", "Bedroom-03.png",
+        "Bathroom-01.png", "Bathroom-02.png",
+        "Kitchen-01.png", "Kitchen-02.png",
+        "Outdoor-01.png", "Outdoor-02.png", "Outdoor-03.png"
+    ];
+    const [previewBg, setPreviewBg] = useState<string | null>(null);
 
     // Lấy bookmark từ localStorage khi load trang
     useEffect(() => {
@@ -60,17 +71,39 @@ export default function DesignerPage() {
     // Lấy x, y khi click ảnh (nếu đang ở mask mode)
     const handleImageClick = (e: React.MouseEvent<HTMLImageElement, MouseEvent>) => {
         if (!maskMode) return;
-        const rect = (e.target as HTMLImageElement).getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const img = e.target as HTMLImageElement;
+        const rect = img.getBoundingClientRect();
+        // Kích thước thật của ảnh hiển thị trên DOM
+        const displayWidth = img.width;
+        const displayHeight = img.height;
+        // Tính offset của ảnh so với viewport
+        const offsetX = rect.left;
+        const offsetY = rect.top;
+        // Tọa độ click so với ảnh hiển thị
+        const clickX = e.clientX - offsetX;
+        const clickY = e.clientY - offsetY;
+        // Nếu click ngoài vùng ảnh, bỏ qua
+        if (clickX < 0 || clickY < 0 || clickX > displayWidth || clickY > displayHeight) return;
+        // Quy đổi về pixel gốc
+        const scaleX = img.naturalWidth / displayWidth;
+        const scaleY = img.naturalHeight / displayHeight;
+        const x = clickX * scaleX;
+        const y = clickY * scaleY;
         setPoint({ x, y });
     };
 
     // Gửi API với form-data
     const handleSubmit = async () => {
-        if (!uploadedFile || !selectedTile || !point) return;
+        if (!uploadedImg || !selectedTile || !point) return;
         setLoading(true);
         setResultImg(null);
+        let originalFile = uploadedFile;
+        // Nếu uploadedImg là URL (ảnh từ carousel), fetch về blob và tạo File
+        if (!uploadedFile && uploadedImg.startsWith('/')) {
+            const res = await fetch(uploadedImg);
+            const blob = await res.blob();
+            originalFile = new File([blob], 'background.png', { type: blob.type });
+        }
         let tileFile: File | null = null;
         if (selectedTile.image.startsWith('http') || selectedTile.image.startsWith('/')) {
             const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(selectedTile.image)}`;
@@ -79,7 +112,7 @@ export default function DesignerPage() {
             tileFile = new File([blob], 'tile01.webp', { type: blob.type });
         }
         const formData = new FormData();
-        formData.append('original', uploadedFile);
+        if (originalFile) formData.append('original', originalFile);
         if (tileFile) formData.append('tile', tileFile);
         formData.append('point_x', String(Math.round(point.x)));
         formData.append('point_y', String(Math.round(point.y)));
@@ -104,7 +137,7 @@ export default function DesignerPage() {
     };
 
     return (
-        <div className="flex flex-col md:flex-row h-auto md:h-[90vh] bg-gray-100">
+        <div className="flex flex-col md:flex-row h-auto bg-gray-100">
             {/* Sidebar */}
             <div className="w-full md:max-w-sm bg-white border-r p-3 md:p-6 flex flex-col gap-4 md:gap-6 shadow-sm">
                 {/* Header sidebar */}
@@ -167,7 +200,7 @@ export default function DesignerPage() {
                     <button
                         className="w-full px-3 py-2.5 bg-stone-600 text-white rounded-lg text-md font-medium shadow hover:bg-stone-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={handleSubmit}
-                        disabled={!uploadedFile || !selectedTile || !point || loading}
+                        disabled={!uploadedImg || !selectedTile || !point || loading}
                     >
                         {loading ? (
                             <>
@@ -186,7 +219,7 @@ export default function DesignerPage() {
                 <div className="mt-2 space-y-2 text-xs text-gray-600 bg-gray-100 p-3 rounded-lg">
                     <div className="flex items-center gap-2">
                         <ImageIcon size={14} />
-                        <span>Uploaded image:</span>
+                        <span>Image:</span>
                         <span className="flex items-center">
                             {uploadedImg ? <CheckCircle size={14} className="text-green-500" /> : <XCircle size={14} className="text-red-500" />}
                         </span>
@@ -205,41 +238,100 @@ export default function DesignerPage() {
             </div>
 
             {/* Main content */}
-            <div className="flex-1 flex flex-col items-center justify-center relative px-2 py-4 md:px-8 md:py-12">
-                {(!resultImg && uploadedImg) && (
-                    <div className="relative mb-8">
+            <div className="flex-1 flex flex-col items-center justify-end relative px-2 py-4 md:px-8 md:py-12">
+                {/* Preview lớn */}
+                {((previewBg && !uploadedImg && !resultImg) || (!resultImg && uploadedImg)) && (
+                    <div className="flex justify-center mb-6 relative">
                         <img
-                            src={uploadedImg}
-                            alt="Uploaded"
-                            className="w-full max-w-[95vw] md:max-w-[800px] h-auto object-contain border shadow-xl rounded-xl"
+                            ref={imgRef}
+                            src={uploadedImg || previewBg || undefined}
+                            alt="Preview"
+                            className="max-h-[420px] rounded-2xl shadow-xl object-contain"
                             onClick={handleImageClick}
                             style={{ cursor: maskMode ? "crosshair" : "default" }}
                         />
-                        {point && (
-                            <div
-                                className="absolute w-7 h-7 rounded-full border-2 border-primary bg-white flex items-center justify-center text-sm font-bold text-primary shadow-lg"
-                                style={{
-                                    left: point.x - 14,
-                                    top: point.y - 14,
-                                    pointerEvents: "none",
-                                }}
-                                title={`(${Math.round(point.x)}, ${Math.round(point.y)})`}
-                            >
-                                +
-                            </div>
-                        )}
+                        {/* Hiển thị marker nếu đã chọn point */}
+                        {point && imgRef.current && (() => {
+                            const img = imgRef.current;
+                            const displayWidth = img.width;
+                            const displayHeight = img.height;
+                            const scaleX = displayWidth / img.naturalWidth;
+                            const scaleY = displayHeight / img.naturalHeight;
+                            const showX = point.x * scaleX;
+                            const showY = point.y * scaleY;
+                            return (
+                                <div
+                                    className="absolute w-7 h-7 rounded-full border-2 border-primary bg-white flex items-center justify-center text-sm font-bold text-primary shadow-lg"
+                                    style={{
+                                        left: showX - 14,
+                                        top: showY - 14,
+                                        pointerEvents: "none",
+                                    }}
+                                    title={`(${Math.round(point.x)}, ${Math.round(point.y)})`}
+                                >
+                                    +
+                                </div>
+                            );
+                        })()}
+                        {/* Overlay loading khi processing */}
                         {loading && (
-                            <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 rounded-xl backdrop-blur-sm">
+                            <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 rounded-2xl backdrop-blur-sm">
                                 <div className="animate-spin rounded-full h-14 w-14 border-t-4 border-primary"></div>
                                 <span className="ml-4 text-primary font-medium text-base">Processing...</span>
                             </div>
                         )}
                     </div>
                 )}
-                {!uploadedImg && !resultImg && (
-                    <div className="text-gray-400 text-xs md:text-base flex items-center gap-3">
-                        <Upload size={20} />
-                        Please upload an image to start designing, size: 1100px x 800px
+
+                {/* Dòng chữ hướng dẫn chỉ hiện trên desktop, căn giữa vùng preview */}
+                {!uploadedImg && !resultImg && !previewBg && (
+                    <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-gray-400 text-base items-center gap-3 justify-center pointer-events-none z-10">
+                        <ImageIcon size={24} />
+                        Please upload or choose a background to start designing
+                    </div>
+                )}
+
+                {/* Dòng chữ hướng dẫn chỉ hiện trên mobile, phía trên carousel */}
+                {!uploadedImg && !resultImg && !previewBg && (
+                    <div className="flex md:hidden text-gray-400 text-xs items-center gap-2 justify-center mb-4">
+                        <ImageIcon size={18} />
+                        Please upload or choose a background to start designing
+                    </div>
+                )}
+
+                {/* Carousel luôn hiện khi chưa upload */}
+                {!resultImg && (
+                    <div className="flex justify-center w-full mt-4 relative overflow-hidden">
+                        <Carousel className="w-full max-w-4xl">
+                            <CarouselContent>
+                                {backgroundImages.map(bg => (
+                                    <CarouselItem
+                                        key={bg}
+                                        className="basis-1/3 md:basis-1/5 flex justify-center items-end"
+                                    >
+                                        <button
+                                            className={`min-w-[100px] h-20 md:min-w-[160px] md:h-32 border rounded-xl overflow-hidden hover:shadow-lg focus:ring-2 focus:ring-stone-400 flex-shrink-0 ${previewBg === `/Background/${bg}` ? 'ring-2 ring-primary border-primary' : ''}`}
+                                            onClick={() => {
+                                                setPreviewBg(`/Background/${bg}`);
+                                                setUploadedImg(`/Background/${bg}`);
+                                                setUploadedFile(null);
+                                                setSelectedTile(null);
+                                                setPoint(null);
+                                                setResultImg(null);
+                                            }}
+                                        >
+                                            <img
+                                                src={`/Background/${bg}`}
+                                                alt={bg}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </button>
+                                    </CarouselItem>
+                                ))}
+                            </CarouselContent>
+                            <CarouselPrevious className="left-2 top-1/2 -translate-y-1/2" />
+                            <CarouselNext className="right-2 top-1/2 -translate-y-1/2" />
+                        </Carousel>
                     </div>
                 )}
                 {resultImg && (

@@ -3,9 +3,10 @@ export default function AboutPage() {
     <div className="bg-gradient-to-b from-white to-stone-50 text-stone-800">
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-amber-100 opacity-50"></div>
+        <div className="absolute inset-0 bg-white opacity-50"></div>
         <div className="max-w-6xl mx-auto px-6 py-32 relative">
-          <div className="space-y-8">
+          <div className="flex flex-col items-center space-y-4">
+            <img src="/star.gif" alt="star" className="w-32 h-32" />
             <h1 className="text-4xl md:text-6xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-stone-900 to-stone-600">
               About Caden Tile Partner Catalog
             </h1>
@@ -18,7 +19,7 @@ export default function AboutPage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 px-6">
+      <section className="py-24 px-6 bg-amber-100">
         <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-start">
           <div className="bg-white p-10 rounded-3xl shadow-sm border border-stone-200 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
             <div className="mb-8">
@@ -75,7 +76,7 @@ export default function AboutPage() {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-24 px-6 bg-stone-200">
+      <section className="py-24 px-6">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-semibold mb-8 text-stone-900">Who It's For</h2>
           <p className="text-xl text-stone-600 mb-16 max-w-3xl mx-auto">

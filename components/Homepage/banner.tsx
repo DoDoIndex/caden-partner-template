@@ -2,9 +2,10 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import { motion, useMotionValue, useAnimation } from "framer-motion";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export default function Banner() {
     const [images, setImages] = useState<string[]>([]);
@@ -12,6 +13,7 @@ export default function Banner() {
     const containerRef = useRef<HTMLDivElement>(null);
     const x = useMotionValue(0);
     const controls = useAnimation();
+    const router = useRouter();
 
     // Fetch images from the API
     useEffect(() => {
@@ -53,7 +55,7 @@ export default function Banner() {
     }, [x, controls, images]);
 
     if (loading) {
-        return <div className="h-[500px] flex items-center justify-center">Loading images...</div>;
+        return <div className="h-[500px] flex items-center justify-center gap-2"><Loader2 className="animate-spin" /> Loading images...</div>;
     }
 
     return (
@@ -98,12 +100,22 @@ export default function Banner() {
                         Discover a curated selection of our top features designed to enhance your experience.
                         From intuitive tools to powerful integrations, explore what makes us unique.
                     </p>
-                    <Button
-                        variant="outline"
-                        className="text-white border-black bg-gray-900 hover:bg-black hover:text-white"
-                        onClick={() => window.open('https://www.instagram.com/cadentile/', '_blank')}>
-                        See our Instagram <ArrowUpRight size={16} />
-                    </Button>
+
+                    <div className="flex gap-4 justify-center">
+                        <Button
+                            variant="default"
+                            className="text-black bg-white hover:bg-gray-100"
+                            onClick={() => router.push('/introduction')}>
+                            How to use
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="text-white border-black bg-gray-900 hover:bg-black hover:text-white"
+                            onClick={() => window.open('https://www.instagram.com/cadentile/', '_blank')}>
+                            See our Instagram <ArrowUpRight size={16} />
+                        </Button>
+                    </div>
+
                 </div>
             </div>
         </div>
