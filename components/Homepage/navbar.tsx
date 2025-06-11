@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { Menu } from "lucide-react";
+import { CircleHelp, Menu } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -33,13 +33,15 @@ export default function Navbar() {
                             className={`hover:text-amber-500 text-md font-semibold ${pathname === '/designer' ? 'text-amber-500' : 'text-stone-300'}`}
                         >Design</Link>
                         <Link
-                            href="/introduction"
-                            className={`hover:text-amber-500 text-md font-semibold ${pathname === '/introduction' ? 'text-amber-500' : 'text-stone-300'}`}
-                        >Handbook</Link>
-                        <Link
                             href="/about"
                             className={`hover:text-amber-500 text-md font-semibold ${pathname === '/about' ? 'text-amber-500' : 'text-stone-300'}`}
                         >About</Link>
+                        <Link
+                            href="/introduction"
+                            className={`hover:text-amber-500 text-md font-semibold ${pathname === '/introduction' ? 'text-amber-500' : 'text-stone-300'}`}
+                        >
+                            <CircleHelp />
+                        </Link>
                     </ul>
 
                     {/* Mobile Menu Dropdown */}
@@ -64,13 +66,13 @@ export default function Navbar() {
                                 </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                                <Link href="/introduction" className="text-stone-300 hover:text-white cursor-pointer">
-                                    Handbook
+                                <Link href="/about" className="text-stone-300 hover:text-white cursor-pointer">
+                                    About
                                 </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                                <Link href="/about" className="text-stone-300 hover:text-white cursor-pointer">
-                                    About
+                                <Link href="/introduction" className="text-stone-300 hover:text-white cursor-pointer">
+                                    <CircleHelp />
                                 </Link>
                             </DropdownMenuItem>
                         </DropdownMenuContent>

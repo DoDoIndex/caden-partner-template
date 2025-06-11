@@ -8,11 +8,11 @@ interface TabsProps {
 
 export default function Tabs({ tabs, activeTab, onTabClick }: TabsProps) {
     return (
-        <div className="flex border-b border-gray-200 w-full justify-center">
+        <div className="flex border-b border-gray-200 md:justify-center">
             {tabs.map((tab) => (
                 <button
                     key={tab}
-                    className={`px-4 py-2 text-lg font-medium focus:outline-none transition
+                    className={`px-4 py-2 text-lg font-medium focus:outline-none transition min-w-max
             ${activeTab === tab
                             ? "border-b-2 border-black text-black"
                             : "text-gray-500 hover:text-black"

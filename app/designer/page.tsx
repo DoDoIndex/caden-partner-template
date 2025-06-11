@@ -283,26 +283,34 @@ export default function DesignerPage() {
                     </div>
                 )}
 
-                {/* Dòng chữ hướng dẫn */}
+                {/* Dòng chữ hướng dẫn chỉ hiện trên desktop, căn giữa vùng preview */}
                 {!uploadedImg && !resultImg && !previewBg && (
-                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[180%] text-gray-400 text-xs md:text-base flex items-center gap-3 justify-center">
-                        <ImageIcon size={20} />
+                    <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-gray-400 text-base items-center gap-3 justify-center pointer-events-none z-10">
+                        <ImageIcon size={24} />
+                        Please upload or choose a background to start designing
+                    </div>
+                )}
+
+                {/* Dòng chữ hướng dẫn chỉ hiện trên mobile, phía trên carousel */}
+                {!uploadedImg && !resultImg && !previewBg && (
+                    <div className="flex md:hidden text-gray-400 text-xs items-center gap-2 justify-center mb-4">
+                        <ImageIcon size={18} />
                         Please upload or choose a background to start designing
                     </div>
                 )}
 
                 {/* Carousel luôn hiện khi chưa upload */}
                 {!resultImg && (
-                    <div className="flex justify-center w-full mt-4">
+                    <div className="flex justify-center w-full mt-4 relative overflow-hidden">
                         <Carousel className="w-full max-w-4xl">
                             <CarouselContent>
                                 {backgroundImages.map(bg => (
                                     <CarouselItem
                                         key={bg}
-                                        className="basis-1/5 flex justify-center items-end"
+                                        className="basis-1/3 md:basis-1/5 flex justify-center items-end"
                                     >
                                         <button
-                                            className={`min-w-[160px] h-32 border rounded-xl overflow-hidden hover:shadow-lg focus:ring-2 focus:ring-stone-400 flex-shrink-0 ${previewBg === `/Background/${bg}` ? 'ring-2 ring-primary border-primary' : ''}`}
+                                            className={`min-w-[100px] h-20 md:min-w-[160px] md:h-32 border rounded-xl overflow-hidden hover:shadow-lg focus:ring-2 focus:ring-stone-400 flex-shrink-0 ${previewBg === `/Background/${bg}` ? 'ring-2 ring-primary border-primary' : ''}`}
                                             onClick={() => {
                                                 setPreviewBg(`/Background/${bg}`);
                                                 setUploadedImg(`/Background/${bg}`);
@@ -321,8 +329,8 @@ export default function DesignerPage() {
                                     </CarouselItem>
                                 ))}
                             </CarouselContent>
-                            <CarouselPrevious />
-                            <CarouselNext />
+                            <CarouselPrevious className="left-2 top-1/2 -translate-y-1/2" />
+                            <CarouselNext className="right-2 top-1/2 -translate-y-1/2" />
                         </Carousel>
                     </div>
                 )}
